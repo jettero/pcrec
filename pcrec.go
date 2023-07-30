@@ -1,11 +1,11 @@
 package pcrec
 
-import "github.com/jettero/pcrec/lib"
+import rl "github.com/jettero/pcrec/lib"
 
-func Match(pat string, subject string, flags int) (*obj.Match, error) {
-	r, err := lib.Compile(pat, flags)
+func Match(pat string, subject string, flags int) (*rl.Match, error) {
+	re, err := rl.Compile(pat, flags)
 	if err != nil {
 		return nil, err
 	}
-	return r.Match(subject)
+	return re.Match(subject), nil
 }

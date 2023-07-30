@@ -1,11 +1,34 @@
 package lib
 
-type Regexp struct {
-	pat string
-	pos int
+import (
+	"errors"
+)
+
+type Item interface {
 }
 
-type MatchBytes struct {
-	limit [2]byte
-	chars [][2]byte
+type Group struct {
+	Items []Item
+	Capno int
+}
+
+type MatchClass struct {
+	Ranges [][2]int
+}
+
+type RE struct {
+	Pattern string
+	Items   []Item
+}
+
+func (re RE) Match(subject string) (m *Match) {
+	return new(Match)
+}
+
+func Compile(pat string, flags int) (*RE, error) {
+	ret := new(RE)
+	if ret != nil {
+		return ret, nil
+	}
+	return ret, errors.New("failcopter")
 }
