@@ -38,17 +38,22 @@ func (mm *MinMax) Capture(values []string) error {
 	return nil
 }
 
+type Clazz struct {
+	Any    bool    `  @DotOp`
+	String *string `| @Rune @Rune*`
+}
+
 type Matcher struct {
-	AnyChar *string `@AnyChar`
-	String  *string `| @String`
-	Quant   *MinMax `@Quant?`
+	Class *Clazz  `@@`
+	Quant *MinMax `@QuantOp?`
 }
 
 var (
 	reLexer = lexer.MustSimple([]lexer.SimpleRule{
-		{"String", `([\w\d]+|\.)+`},
-		{"AnyChar", `\.`},
-		{"Quant", `[*+?]`},
+		{"DotOp", `\.`},
+		{"RangeOp", `-`},
+		{"QuantOp", `[*+?]`},
+		{"Rune", `.`},
 	})
 	parser = participle.MustBuild[Things](
 		participle.Lexer(reLexer),
