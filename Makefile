@@ -5,4 +5,5 @@ test:
 
 clean:
 	git clean -dfx
+	go clean -cache
 	go mod tidy -v -go=$(GO_VERSION) -compat=$(GO_VERSION)

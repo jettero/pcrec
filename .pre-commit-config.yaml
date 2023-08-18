@@ -12,3 +12,12 @@ repos:
   rev: v0.5.1
   hooks:
   - id: go-fmt
+    args: [ "-s" ]
+
+- repo: local
+  hooks:
+  - id: wtf
+    name: WTF
+    entry: '\b(?i:wtf)\b'
+    types: [ go ]
+    language: pygrep

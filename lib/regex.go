@@ -1,10 +1,8 @@
 package lib
 
 import (
-	"fmt"
 	"github.com/alecthomas/participle/v2"
 	"github.com/alecthomas/participle/v2/lexer"
-	"github.com/k0kubun/pp/v3"
 )
 
 type NFA struct {
@@ -19,11 +17,6 @@ type MinMax struct {
 
 func (mm *MinMax) Capture(values []string) error {
 	v := []rune(values[0])
-	fmt.Printf("WTF(")
-	pp.Print(values)
-	fmt.Printf(" => ")
-	pp.Print(v)
-	fmt.Printf(")\n")
 
 	switch v[0] {
 	case '?':

@@ -1,21 +1,29 @@
 package pcrec_test
 
-import "testing"
-import rl "github.com/jettero/pcrec/lib"
+import (
+	"fmt"
+	"github.com/jettero/pcrec"
+	"testing"
+)
 
-func CompileTest(t *testing.T) {
-	_, err := rl.Compile(`.`, 0)
-	if err == nil {
-		t.Error("`.` should compile")
-	}
+var shouldCompile = []string{
+	`.`,
+	`a`,
+	`ab`,
+	`[a]`,
+	`[ab]`,
 }
 
-// func TestMatch(t *testing.T) {
-//     m, err := re.Match(`.`, "aba", 0)
-//     if err == nil {
-//         t.Error("`.` should compile")
-//     }
-//     if m == nil {
-//         t.Error("`.` should amtch \"aba\"")
-//     }
-// }
+func TestCompile(t *testing.T) {
+	for _, mod := range []string{"", "?", "*", "+", "*?", "+?"} {
+		for _, pat := range shouldCompile {
+			cpat := fmt.Sprintf("%s%s", pat, mod)
+			t.Run(fmt.Sprintf("pcrec.Compile(pat=`%s`)", cpat), func(t *testing.T) {
+				_, err := pcrec.Compile(cpat)
+				if err != nil {
+					t.Error(fmt.Sprintf("`%s` should compile but didn't: %s", cpat, err))
+				}
+			})
+		}
+	}
+}
