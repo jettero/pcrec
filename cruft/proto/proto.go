@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"os"
-	"strings"
 
 	"github.com/alecthomas/participle/v2"
 	"github.com/alecthomas/participle/v2/lexer"
@@ -11,8 +10,8 @@ import (
 	"github.com/k0kubun/pp/v3"
 )
 
-type Things struct {
-	Matchers []*Matcher `@@*`
+type NFA struct {
+	States []*State `@@*`
 }
 
 type MinMax struct {
@@ -38,38 +37,43 @@ func (mm *MinMax) Capture(values []string) error {
 	return nil
 }
 
-type Clazz struct {
-	Any    bool    `  @DotOp`
-	String *string `| @Rune @Rune*`
+type RuneRange struct {
+	B *string `  @Rune`
+	E *string `( "-" @Rune )?`
 }
 
 type Matcher struct {
-	Class *Clazz  `@@`
-	Quant *MinMax `@QuantOp?`
+	Any   bool         `  @DotOp`
+	Range []*RuneRange `| "[" @@ @@* "]" | @@`
+}
+
+type State struct {
+	Match *Matcher `@@`
+	Quant *MinMax  `@QuantOp?`
 }
 
 var (
 	reLexer = lexer.MustSimple([]lexer.SimpleRule{
 		{"DotOp", `\.`},
-		{"RangeOp", `-`},
 		{"QuantOp", `[*+?]`},
-		{"Rune", `.`},
+		{"Rune", `[ab]`},
+		{"WUT", `.`},
 	})
-	parser = participle.MustBuild[Things](
+	parser = participle.MustBuild[NFA](
 		participle.Lexer(reLexer),
-		participle.UseLookahead(2),
+		participle.UseLookahead(99999),
 	)
 )
 
 func main() {
 	for _, arg := range os.Args[1:] {
-		reader := strings.NewReader(arg)
 		fmt.Printf("-------------=: parsing, \"%s\"\n", arg)
-		ast, err := parser.Parse("-", reader)
+		ast, err := parser.ParseString("-", arg)
 		if err != nil {
 			fmt.Printf("ERROR: %+v\n", err)
 		} else {
-			pp.Print(ast)
+			pp.Print(ast) // why doesn't this print its own newlin? pfft
+			fmt.Println()
 		}
 		fmt.Println()
 	}
