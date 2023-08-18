@@ -38,7 +38,7 @@ func (mm *MinMax) Capture(values []string) error {
 }
 
 type RuneRange struct {
-	B *string `  @Rune`
+	B *string `@Rune`
 	E *string `( "-" @Rune )?`
 }
 
@@ -56,8 +56,8 @@ var (
 	reLexer = lexer.MustSimple([]lexer.SimpleRule{
 		{"DotOp", `\.`},
 		{"QuantOp", `[*+?]`},
-		{"Rune", `[ab]`},
-		{"WUT", `.`},
+		{"Rune", `[^[\]*+?\\]`},
+		{"AnyRune", `.`},
 	})
 	parser = participle.MustBuild[NFA](
 		participle.Lexer(reLexer),
