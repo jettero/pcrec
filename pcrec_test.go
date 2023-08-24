@@ -6,17 +6,12 @@ import (
 	"testing"
 )
 
-var shouldCompile = []string{
-	`.`,
-	`a`,
-	`ab`,
-	`[a]`,
-	`[ab]`,
-}
+var shouldCompileBase = []string{`.`, `a`, `ab`, `[a]`, `[ab]`}
+var shouldCompileQuant = []string{"", "?", "*", "+", "*?", "+?"}
 
 func TestCompile(t *testing.T) {
-	for _, mod := range []string{"", "?", "*", "+", "*?", "+?"} {
-		for _, pat := range shouldCompile {
+	for _, pat := range shouldCompileBase {
+		for _, mod := range shouldCompileQuant {
 			cpat := fmt.Sprintf("%s%s", pat, mod)
 			t.Run(fmt.Sprintf("pcrec.Compile(pat=`%s`)", cpat), func(t *testing.T) {
 				_, err := pcrec.Compile(cpat)
