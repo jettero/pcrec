@@ -48,12 +48,12 @@ type RuneRange struct {
 type Matcher struct {
 	Any      bool         `  @DotOp`
 	Range    []*RuneRange `| "[" @@ @@* "]" | @@`
-	Groupies []*Matcher   `| "(" @@ ( "|" @@ )* ")"`
+	Groupies []*State     `| "(" @@ ( "|" @@ )* ")"`
 }
 
 type State struct {
-	Match *Matcher `@@`
-	Quant *MinMax  `@QuantOp?`
+	Match []*Matcher `@@+`
+	Quant *MinMax    `@QuantOp?`
 }
 
 var (
