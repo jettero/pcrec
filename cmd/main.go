@@ -8,6 +8,8 @@ import (
 )
 
 func main() {
+	fmt.Printf("ENBF:\n%s\n\n", lib.Parser)
+
 	for _, arg := range os.Args[1:] {
 		fmt.Printf("-------------=: parsing, \"%s\"\n", arg)
 		ast, err := lib.Parser.ParseString("-", arg)
