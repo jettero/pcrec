@@ -46,9 +46,23 @@ type RuneRange struct {
 }
 
 type Matcher struct {
-	Any      bool         `  @DotOp`
-	Range    []*RuneRange `| "[" @@ @@* "]" | @@`
-	Groupies []*State     `| "(" @@ ( "|" @@ )* ")"`
+	Any   bool         `  @DotOp`
+	Range []*RuneRange `| "[" @@ @@* "]" | @@`
+	Group *Group       `| "(" @@ ")"`
+}
+
+type GroupFlags struct {
+	NonCapturing    bool
+	CaseInsensitive bool
+}
+
+func (gf *GroupFlags) Capture(values []string) error {
+	return nil
+}
+
+type Group struct {
+	Flags    *GroupFlags `@GFlags?`
+	Groupies []*State    `@@ ( "|" @@ )*`
 }
 
 type State struct {
@@ -62,6 +76,7 @@ var (
 		{"Digits", `\d+`},
 		{"QuantOp", `[*+?]\??|{\d+(,\d*)?}|{,\d+}`},
 		{"Rune", `[^[\]*+?\\()|]`},
+		{"GFlags", `[?][^:]*:`},
 		{"AnyRune", `.`},
 	})
 	Parser = participle.MustBuild[NFA](
