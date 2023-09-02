@@ -10,7 +10,7 @@ import (
 func main() {
 	for _, arg := range os.Args[1:] {
 		fmt.Printf("-------------=: parsing, \"%s\"\n", arg)
-		nfa, err := pcrec.Compile(arg)
+		nfa, err := pcrec.ParseString(arg)
 		if err != nil {
 			fmt.Printf("RE-ARG: %s\n", arg)
 			fmt.Printf("ERROR:  %+v\n", err)

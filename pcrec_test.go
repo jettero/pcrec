@@ -6,21 +6,42 @@ import (
 	"testing"
 )
 
-var shouldCompileBase = []string{`.`, `a`, `ab`, `[a]`, `[ab]`, `[a-b]`}
-var shouldCompileQuant = []string{"", "?", "*", "+", "*?", "+?", "{2,}", "{,3}", "{2,3}"}
+var shouldCompile = []string{`?ab`, `ab}`, `ab)`, `ab]`, `{,}`}
+var shouldNotCompile = []string{`?ab`, `ab}`, `ab)`, `ab]`, `{,}`}
 
-func TestCompile(t *testing.T) {
+var populateCompileBase = []string{`.`, `a`, `ab`, `[a]`, `[ab]`, `[a-b]`}
+var populateCompileQuant = []string{"", "?", "*", "+", "*?", "+?", "{2,}", "{,3}", "{2,3}"}
+
+func populateShouldCompile() {
 	for _, gfmt := range []string{"%s%s", "(%s%s)", "(%s)%s"} {
-		for _, pat := range shouldCompileBase {
-			for _, mod := range shouldCompileQuant {
+		for _, pat := range populateCompileBase {
+			for _, mod := range populateCompileQuant {
 				cpat := fmt.Sprintf(gfmt, pat, mod)
-				t.Run(fmt.Sprintf("pcrec.Compile(pat=`%s`)", cpat), func(t *testing.T) {
-					_, err := pcrec.Compile(cpat)
-					if err != nil {
-						t.Error(fmt.Sprintf("`%s` should compile but didn't: %s", cpat, err))
-					}
-				})
+				shouldCompile = append(shouldCompile, cpat)
 			}
 		}
+	}
+}
+
+func TestCompile(t *testing.T) {
+	populateShouldCompile()
+	for _, pat := range shouldCompile {
+		t.Run(fmt.Sprintf("pat=`%s`", pat), func(t *testing.T) {
+			_, err := pcrec.ParseString(pat)
+			if err != nil {
+				t.Error(fmt.Sprintf("`%s` should not compile but did", pat))
+			}
+		})
+	}
+}
+
+func TestNotCompile(t *testing.T) {
+	for _, pat := range shouldNotCompile {
+		t.Run(fmt.Sprintf("pat=`%s`", pat), func(t *testing.T) {
+			_, err := pcrec.ParseString(pat)
+			if err == nil {
+				t.Error(fmt.Sprintf("`%s` should not compile but did", pat))
+			}
+		})
 	}
 }
