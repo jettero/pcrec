@@ -6,8 +6,14 @@ import (
 	"testing"
 )
 
-var shouldCompile = []string{`?ab`, `ab}`, `ab)`, `ab]`, `{,}`}
-var shouldNotCompile = []string{`?ab`, `ab}`, `ab)`, `ab]`, `{,}`}
+var shouldCompile = []string{
+	`(a|b|ab|(a)(b)|(ab)|[ab][a][b])`,
+
+	// seems ludicrous, but these should compile, but the {}'s are literal:
+	`{}`, `{,}`,
+	`.{}`, `.{,}`,
+}
+var shouldNotCompile = []string{`?ab`, `ab}`, `ab)`, `ab]`, `{}`, `{}ab`}
 
 var populateCompileBase = []string{`.`, `a`, `ab`, `[a]`, `[ab]`, `[a-b]`}
 var populateCompileQuant = []string{"", "?", "*", "+", "*?", "+?", "{2,}", "{,3}", "{2,3}"}
@@ -29,7 +35,7 @@ func TestCompile(t *testing.T) {
 		t.Run(fmt.Sprintf("pat=`%s`", pat), func(t *testing.T) {
 			_, err := pcrec.ParseString(pat)
 			if err != nil {
-				t.Error(fmt.Sprintf("`%s` should not compile but did", pat))
+				t.Error(fmt.Sprintf("`%s` should compile but did not: %s", pat, err))
 			}
 		})
 	}
