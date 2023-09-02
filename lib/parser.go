@@ -4,50 +4,6 @@ import (
 	"fmt"
 )
 
-type NFA struct {
-	States []*State
-}
-
-func (n *NFA) AddRuneState(r rune) {
-	one := 1
-	n.States = append(n.States, &State{})
-	s := n.States[len(n.States)-1]
-	s.min = &one
-	s.max = &one
-	m := s.LastOrNewMatcher()
-	m.min = &r
-	m.max = m.min
-}
-
-func (n *NFA) LastOrNewState() *State {
-	if len(n.States) < 1 {
-		n.States = append(n.States, &State{})
-	}
-	return n.States[len(n.States)-1]
-}
-
-type Matcher struct {
-	min *rune
-	max *rune
-}
-
-type State struct {
-	Match []*Matcher
-	min   *int
-	max   *int
-}
-
-func (s *State) AddRuneMatch() {
-
-}
-
-func (s *State) LastOrNewMatcher() *Matcher {
-	if len(s.Match) < 1 {
-		s.Match = append(s.Match, &Matcher{})
-	}
-	return s.Match[len(s.Match)-1]
-}
-
 const (
 	CTX_NONE int = iota
 	CTX_SLASHED
@@ -70,8 +26,8 @@ func showError(pat []rune, pos int) error {
 
 func Parse(pat []rune) (*NFA, error) {
 	mode := []int{CTX_NONE}
-	nfa := &NFA{}
-	ret := nfa
+	top := &NFA{}
+	ret := top
 
 	// places to store things during the parse
 	var m_rreg1 []rune
@@ -123,7 +79,7 @@ func Parse(pat []rune) (*NFA, error) {
 				return ret, showError(pat, i)
 
 			default:
-				nfa.AddRuneState(r)
+				top.AddRuneState(r)
 			}
 		case m == CTX_SLASHED:
 			switch {

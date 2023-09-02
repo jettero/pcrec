@@ -10,10 +10,14 @@ var shouldCompile = []string{
 	`(a|b|ab|(a)(b)|(ab)|[ab][a][b])`,
 
 	// seems ludicrous, but these should compile, but the {}'s are literal:
-	`{}`, `{,}`,
-	`.{}`, `.{,}`,
+	`.{}`, `.{,}`, `.]`, `.}`,
+	`a{}`, `a{,}`, `a]`, `a}`,
 }
-var shouldNotCompile = []string{`?ab`, `ab}`, `ab)`, `ab]`, `{}`, `{}ab`}
+var shouldNotCompile = []string{
+	`*ab`,
+	`?ab`,
+	`ab)`,
+}
 
 var populateCompileBase = []string{`.`, `a`, `ab`, `[a]`, `[ab]`, `[a-b]`}
 var populateCompileQuant = []string{"", "?", "*", "+", "*?", "+?", "{2,}", "{,3}", "{2,3}"}
