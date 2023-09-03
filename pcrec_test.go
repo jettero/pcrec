@@ -9,7 +9,8 @@ import (
 var shouldCompile = []string{
 	`(a|b|ab|(a)(b)|(ab)|[ab][a][b])`,
 
-	// seems ludicrous, but these should compile, but the {}'s are literal:
+	// seems ludicrous, but these should compile
+	// the seemingly erroneous symbols just become literals
 	`.{}`, `.{,}`, `.]`, `.}`,
 	`a{}`, `a{,}`, `a]`, `a}`,
 }
@@ -17,6 +18,12 @@ var shouldNotCompile = []string{
 	`*ab`,
 	`?ab`,
 	`ab)`,
+	`.**`,
+	`.+*`,
+	`.*+`,
+	`.?+`,
+	`.?*`,
+	`.{1,2}{1,2}`,
 }
 
 var populateCompileBase = []string{`.`, `a`, `ab`, `[a]`, `[ab]`, `[a-b]`}

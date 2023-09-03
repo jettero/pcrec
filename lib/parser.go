@@ -16,10 +16,11 @@ const (
 )
 
 const (
-	SUB_INIT int = iota
-	SUB_RET
-	SUB_LHS
-	SUB_RHS
+	SUB_INIT int = iota // we just pushed a context or just returned from one
+	SUB_RET             // we just popped context and restored position
+	SUB_LHS             // context specific
+	SUB_RHS             // context specific
+	SUB_QTY             // we just issued SetQty
 )
 
 type Parser struct {
@@ -62,10 +63,12 @@ func (p *Parser) PopContext(restore_i bool) {
 		o := p.mode[len(p.mode)-1]
 		p.mode = p.mode[:len(p.mode)-1]
 		p.m = p.mode[len(p.mode)-1].m
-		p.n = SUB_RET
 		if restore_i {
 			p.i = o.i - 1 // gets incremented immediately after pop, so go one early
 			p.r = p.pat[p.i]
+			p.n = SUB_RET
+		} else {
+			p.n = SUB_INIT
 		}
 		p.Printf("  PopContext(%v) => p.i: %d; p.r: %c; p.mn: %d.%d\n", restore_i, p.i, p.r, p.m, p.n)
 	}
@@ -108,29 +111,36 @@ func (p *Parser) Parse(pat []rune) (*NFA, error) {
 				if p.n == SUB_RET {
 					p.Printf(" AddRuneState(%c) NQUANT-RETURN\n", p.r)
 					p.top.AddRuneState(p.r)
+					p.n = SUB_INIT
 				} else {
 					p.PushContext(CTX_NQUANT)
 				}
 
-				// without being in a capture context, these are wrong
 			case p.r == '?':
-				if err := p.top.SetQty(0, 1); err != nil {
+				if p.n == SUB_QTY {
+					s := p.top.States[len(p.top.States)-1]
+					s.Greedy = false
+				} else if err := p.top.SetQty(0, 1); err != nil {
 					return p.top, p.formatError(err.Error())
 				}
+				p.n = SUB_QTY
 			case p.r == '*':
 				if err := p.top.SetQty(0, -1); err != nil {
 					return p.top, p.formatError(err.Error())
 				}
+				p.n = SUB_QTY
 			case p.r == '+':
 				if err := p.top.SetQty(1, -1); err != nil {
 					return p.top, p.formatError(err.Error())
 				}
+				p.n = SUB_QTY
 			case p.r == ')':
 				return p.top, p.formatError("")
 
 			default:
 				p.Printf(" AddRuneState(%c) default\n", p.r)
 				p.top.AddRuneState(p.r)
+				p.n = SUB_INIT
 			}
 		case p.m == CTX_SLASHED:
 			switch {
@@ -174,6 +184,7 @@ func (p *Parser) Parse(pat []rune) (*NFA, error) {
 						return p.top, p.formatError(err.Error())
 					}
 					p.PopContext(false)
+					p.n = SUB_QTY
 				} else {
 					p.PopContext(true)
 				}
