@@ -1,25 +1,13 @@
 package lib
 
-import (
-	"fmt"
-)
-
 type NFA struct {
 	States []*State
 }
 
-func (n *NFA) SetQty(min int, max int) error {
-	if len(n.States) < 1 {
-		return fmt.Errorf("quantifier before repeatable item")
-	}
+func (n *NFA) SetQty(min int, max int) {
 	s := n.States[len(n.States)-1]
-	if s.QtySet {
-		return fmt.Errorf("quantifier does not follow a repeatable item")
-	}
 	s.Min = min
 	s.Max = max
-	s.QtySet = true
-	return nil
 }
 
 func (n *NFA) AddRuneState(r rune) *State {
@@ -44,5 +32,4 @@ type State struct {
 	Max     int        // max matches or -1 for many
 	Greedy  bool       // usually we want to capture/match as many as possible
 	Capture bool       // we can match in groups without capturing
-	QtySet  bool       // whether we've already set a qty on this state
 }

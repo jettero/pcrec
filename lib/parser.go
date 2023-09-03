@@ -20,7 +20,8 @@ const (
 	SUB_RET             // we just popped context and restored position
 	SUB_LHS             // context specific
 	SUB_RHS             // context specific
-	SUB_QTY             // we just issued SetQty
+	SUB_QTY             // we just issued SetQty()
+	SUB_REP             // we just queued a repeatable item (relating to qtys)
 )
 
 type Parser struct {
@@ -40,19 +41,20 @@ type Parser struct {
 
 type Context struct {
 	m int // this mode
+	n int // p.n at time of push
 	i int // p.i at time of push
 }
 
-func (p *Parser) formatError(msg string) error {
+func (p *Parser) formatError(msg string) (*NFA, error) {
 	firstPart := "ERROR"
 	if len(msg) > 0 {
 		firstPart = fmt.Sprintf("ERROR: %s, while", msg)
 	}
-	return fmt.Errorf("%s processing \"%s\": unexpected character '%c' at position %d", firstPart, string(p.pat), p.pat[p.i], p.i+1)
+	return p.top, fmt.Errorf("%s processing \"%s\": unexpected character '%c' at position %d", firstPart, string(p.pat), p.pat[p.i], p.i+1)
 }
 
 func (p *Parser) PushContext(c int) {
-	p.mode = append(p.mode, Context{m: c, i: p.i})
+	p.mode = append(p.mode, Context{m: c, i: p.i, n: p.n})
 	p.m = c
 	p.n = SUB_INIT
 	p.Printf("  PushContext() => %d.%d\n", p.m, p.n)
@@ -80,6 +82,16 @@ func (p *Parser) Printf(format string, args ...interface{}) {
 	}
 }
 
+func (p *Parser) QTop() *NFA {
+	p.n = SUB_QTY
+	return p.top
+}
+
+func (p *Parser) RTop() *NFA {
+	p.n = SUB_REP
+	return p.top
+}
+
 func (p *Parser) Parse(pat []rune) (*NFA, error) {
 	p.trace = TruthyEnv("PCREC_TRACE") || TruthyEnv("RE_PARSE_TRACE")
 	p.mode = []Context{{m: CTX_NONE, i: 0}}
@@ -94,9 +106,9 @@ func (p *Parser) Parse(pat []rune) (*NFA, error) {
 			switch {
 			// matchers
 			case p.r == '.':
-				p.top.AddDotState()
+				p.RTop().AddDotState()
 			case p.r == '\n':
-				p.top.AddRuneState(p.r) // this may be $ sometimes with /m
+				p.RTop().AddRuneState(p.r) // this may be $ sometimes with /m
 			case p.r == '[':
 				p.PushContext(CTX_CCLASS)
 
@@ -110,37 +122,43 @@ func (p *Parser) Parse(pat []rune) (*NFA, error) {
 			case p.r == '{':
 				if p.n == SUB_RET {
 					p.Printf(" AddRuneState(%c) NQUANT-RETURN\n", p.r)
-					p.top.AddRuneState(p.r)
-					p.n = SUB_INIT
+					p.RTop().AddRuneState(p.r)
+					p.n = SUB_REP
 				} else {
 					p.PushContext(CTX_NQUANT)
 				}
 
 			case p.r == '?':
-				if p.n == SUB_QTY {
+				switch {
+				case p.n == SUB_QTY:
 					s := p.top.States[len(p.top.States)-1]
 					s.Greedy = false
-				} else if err := p.top.SetQty(0, 1); err != nil {
-					return p.top, p.formatError(err.Error())
+					p.n = SUB_INIT
+				case p.n == SUB_REP:
+					p.QTop().SetQty(0, 1)
+				default:
+					return p.formatError("quantifier without preceeding repeatable")
 				}
-				p.n = SUB_QTY
 			case p.r == '*':
-				if err := p.top.SetQty(0, -1); err != nil {
-					return p.top, p.formatError(err.Error())
+				switch {
+				case p.n == SUB_REP:
+					p.QTop().SetQty(0, -1)
+				default:
+					return p.formatError("quantifier without preceeding repeatable")
 				}
-				p.n = SUB_QTY
 			case p.r == '+':
-				if err := p.top.SetQty(1, -1); err != nil {
-					return p.top, p.formatError(err.Error())
+				switch {
+				case p.n == SUB_REP:
+					p.QTop().SetQty(1, -1)
+				default:
+					return p.formatError("quantifier without preceeding repeatable")
 				}
-				p.n = SUB_QTY
 			case p.r == ')':
-				return p.top, p.formatError("")
+				return p.formatError("")
 
 			default:
 				p.Printf(" AddRuneState(%c) default\n", p.r)
-				p.top.AddRuneState(p.r)
-				p.n = SUB_INIT
+				p.RTop().AddRuneState(p.r)
 			}
 		case p.m == CTX_SLASHED:
 			switch {
@@ -168,10 +186,13 @@ func (p *Parser) Parse(pat []rune) (*NFA, error) {
 				case p.n == SUB_LHS:
 					p.n = SUB_RHS
 				default:
-					return p.top, p.formatError("")
+					return p.formatError("")
 				}
 			case p.r == '}':
 				if len(p.m_rreg1) > 0 || len(p.m_rreg2) > 0 {
+					if p.mode[len(p.mode)-1].n != SUB_REP {
+						return p.formatError("quantifier without preceeding repeatable")
+					}
 					var a int = 0
 					var b int = -1
 					if num, err := strconv.ParseInt(string(p.m_rreg1), 10, 0); err == nil {
@@ -180,11 +201,8 @@ func (p *Parser) Parse(pat []rune) (*NFA, error) {
 					if num, err := strconv.ParseInt(string(p.m_rreg2), 10, 0); err == nil {
 						b = int(num)
 					}
-					if err := p.top.SetQty(a, b); err != nil {
-						return p.top, p.formatError(err.Error())
-					}
 					p.PopContext(false)
-					p.n = SUB_QTY
+					p.QTop().SetQty(a, b)
 				} else {
 					p.PopContext(true)
 				}
