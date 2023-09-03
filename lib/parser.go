@@ -23,9 +23,10 @@ const (
 )
 
 type Parser struct {
-	mode []Context
-	top  *NFA
-	pat  []rune
+	trace bool
+	mode  []Context
+	top   *NFA
+	pat   []rune
 
 	r rune // current rune
 	m int  // current mode number
@@ -53,7 +54,7 @@ func (p *Parser) PushContext(c int) {
 	p.mode = append(p.mode, Context{m: c, i: p.i})
 	p.m = c
 	p.n = SUB_INIT
-	fmt.Printf("  PushContext() => %d.%d\n", p.m, p.n)
+	p.Printf("  PushContext() => %d.%d\n", p.m, p.n)
 }
 
 func (p *Parser) PopContext(restore_i bool) {
@@ -66,11 +67,18 @@ func (p *Parser) PopContext(restore_i bool) {
 			p.i = o.i - 1 // gets incremented immediately after pop, so go one early
 			p.r = p.pat[p.i]
 		}
-		fmt.Printf("  PopContext(%v) => p.i: %d; p.r: %c; p.mn: %d.%d\n", restore_i, p.i, p.r, p.m, p.n)
+		p.Printf("  PopContext(%v) => p.i: %d; p.r: %c; p.mn: %d.%d\n", restore_i, p.i, p.r, p.m, p.n)
 	}
 }
 
-func (p Parser) Parse(pat []rune) (*NFA, error) {
+func (p *Parser) Printf(format string, args ...interface{}) {
+	if p.trace {
+		fmt.Printf(format, args...)
+	}
+}
+
+func (p *Parser) Parse(pat []rune) (*NFA, error) {
+	p.trace = TruthyEnv("PCREC_TRACE") || TruthyEnv("RE_PARSE_TRACE")
 	p.mode = []Context{{m: CTX_NONE, i: 0}}
 	p.top = &NFA{}
 	p.pat = pat
@@ -98,7 +106,7 @@ func (p Parser) Parse(pat []rune) (*NFA, error) {
 				// quantities
 			case p.r == '{':
 				if p.n == SUB_RET {
-					fmt.Printf(" AddRuneState(%c) NQUANT-RETURN\n", p.r)
+					p.Printf(" AddRuneState(%c) NQUANT-RETURN\n", p.r)
 					p.top.AddRuneState(p.r)
 				} else {
 					p.PushContext(CTX_NQUANT)
@@ -121,7 +129,7 @@ func (p Parser) Parse(pat []rune) (*NFA, error) {
 				return p.top, p.formatError("")
 
 			default:
-				fmt.Printf(" AddRuneState(%c) default\n", p.r)
+				p.Printf(" AddRuneState(%c) default\n", p.r)
 				p.top.AddRuneState(p.r)
 			}
 		case p.m == CTX_SLASHED:
@@ -171,7 +179,7 @@ func (p Parser) Parse(pat []rune) (*NFA, error) {
 				}
 			}
 		}
-		fmt.Printf("---=: p.pat[%d]: %c; p.mode: %+v; p.mn: %d.%d\n", p.i, p.r, p.mode, p.m, p.n)
+		p.Printf("---=: p.pat[%d]: %c; p.mode: %+v; p.mn: %d.%d\n", p.i, p.r, p.mode, p.m, p.n)
 	}
 	return p.top, nil
 }
