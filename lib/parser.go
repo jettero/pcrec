@@ -16,98 +16,115 @@ const (
 
 const (
 	SUB_INIT int = iota
+	SUB_RET
 	SUB_LHS
 	SUB_RHS
 )
 
-func showError(pat []rune, pos int) error {
-	return fmt.Errorf("ERROR processing \"%s\": unexpected character '%c' at position %d", string(pat), pat[pos], pos+1)
+type Parser struct {
+	mode []int
+	top  *NFA
+
+	r rune // current rune
+	m int  // current mode number
+	n int  // current sub-mode number
+	i int
+
+	m_rreg1 []rune // tmp storage
+	m_rreg2 []rune
 }
 
-func Parse(pat []rune) (*NFA, error) {
-	mode := []int{CTX_NONE}
-	top := &NFA{}
-	ret := top
+func (p Parser) formatError(pat []rune) error {
+	return fmt.Errorf("ERROR processing \"%s\": unexpected character '%c' at position %d", string(pat), pat[p.i], p.i+1)
+}
 
-	// places to store things during the parse
-	var m_rreg1 []rune
-	var m_rreg2 []rune
+func (p Parser) PushContext(c int) {
+	p.n = SUB_INIT
+	p.mode = append(p.mode, c)
+	p.m = c
+}
 
-	var r rune // current rune
-	var m int  // current mode number
-	var n int  // current sub-mode number
-	for i := 0; i < len(pat); i++ {
-		r = pat[i]
-		m = mode[len(mode)-1]
+func (p Parser) PopContext() {
+	p.mode = p.mode[:len(p.mode)-1]
+	p.m = p.mode[len(p.mode)-1]
+	p.n = SUB_RET
+}
 
-		fmt.Printf("---=: pat[%d]: %c; mode: %+v\n", i, r, mode)
+func (p Parser) Parse(pat []rune) (*NFA, error) {
+	p.mode = []int{CTX_NONE}
+	p.top = &NFA{}
+
+	for p.i = 0; p.i < len(pat); p.i++ {
+		p.r = pat[p.i]
+		fmt.Printf("---=: p.pat[%d]: %c; p.mode: %+v\n", p.i, p.r, p.mode)
 
 		switch {
-		case m == CTX_NONE:
+		case p.m == CTX_NONE:
 			switch {
 			// matchers
-			case r == '.':
-			case r == '\n':
-			case r == '[':
-				n = SUB_INIT
-				mode = append(mode, CTX_CCLASS)
+			case p.r == '.':
+			case p.r == '\n':
+			case p.r == '[':
+				p.PushContext(CTX_CCLASS)
 
 				// new context
-			case r == '(':
-				n = SUB_INIT
-				mode = append(mode, CTX_GROUP)
-			case r == '\\':
-				n = SUB_INIT
-				mode = append(mode, CTX_SLASHED)
+			case p.r == '(':
+				p.PushContext(CTX_GROUP)
+			case p.r == '\\':
+				p.PushContext(CTX_SLASHED)
 
 				// quantities
-			case r == '{':
-				n = SUB_INIT
-				mode = append(mode, CTX_NQUANT)
+			case p.r == '{':
+				p.PushContext(CTX_NQUANT)
 
 				// without being in a capture context, these are wrong
-			case r == '?':
-			case r == '*':
-			case r == '+':
-			case r == ')':
-				return ret, showError(pat, i)
+			case p.r == '?':
+			case p.r == '*':
+			case p.r == '+':
+			case p.r == ')':
+				return p.top, p.formatError(pat)
 
 			default:
-				top.AddRuneState(r)
+				p.top.AddRuneState(p.r)
 			}
-		case m == CTX_SLASHED:
+		case p.m == CTX_SLASHED:
 			switch {
-			case r == 'u':
-				mode = append(mode, CTX_UNICODE)
-			case r == 'x':
-				mode = append(mode, CTX_HEX)
+			case p.r == 'u':
+				p.PushContext(CTX_UNICODE)
+			case p.r == 'x':
+				p.PushContext(CTX_HEX)
 			}
-		case m == CTX_NQUANT:
-			if n == SUB_INIT {
-				m_rreg1 = []rune{}
-				m_rreg2 = []rune{}
-				n = SUB_LHS
+		case p.m == CTX_NQUANT:
+			if p.n == SUB_INIT {
+				p.m_rreg1 = []rune{}
+				p.m_rreg2 = []rune{}
+				p.n = SUB_LHS
 			}
 			switch {
-			case '0' <= r && r <= '9':
+			case '0' <= p.r && p.r <= '9':
 				switch {
-				case n == SUB_LHS:
-					m_rreg1 = append(m_rreg1, r)
-				case n == SUB_RHS:
-					m_rreg2 = append(m_rreg2, r)
+				case p.n == SUB_LHS:
+					p.m_rreg1 = append(p.m_rreg1, p.r)
+				case p.n == SUB_RHS:
+					p.m_rreg2 = append(p.m_rreg2, p.r)
 				}
-			case r == ',':
+			case p.r == ',':
 				switch {
-				case n == SUB_LHS:
-					n = SUB_RHS
+				case p.n == SUB_LHS:
+					p.n = SUB_RHS
 				default:
-					return ret, showError(pat, i)
+					return p.top, p.formatError(pat)
 				}
-			case r == '}':
-				fmt.Printf("    nquant{%s, %s}\n", string(m_rreg1), string(m_rreg2))
-				mode = mode[:len(mode)-1]
+			case p.r == '}':
+				fmt.Printf("    nquant{%s, %s}\n", string(p.m_rreg1), string(p.m_rreg2))
+				p.PopContext()
 			}
 		}
 	}
-	return ret, nil
+	return p.top, nil
+}
+
+func Parse(pat []rune) (*NFA, error) {
+	parser := Parser{}
+	return parser.Parse(pat)
 }
