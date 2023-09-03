@@ -61,21 +61,15 @@ func Parse(pat []rune) (*NFA, error) {
 				mode = append(mode, CTX_SLASHED)
 
 				// quantities
-			case r == '?':
-			case r == '*':
-			case r == '+':
 			case r == '{':
 				n = SUB_INIT
 				mode = append(mode, CTX_NQUANT)
 
-				// we shouldn't encounter the following here
+				// without being in a capture context, these are wrong
+			case r == '?':
+			case r == '*':
+			case r == '+':
 			case r == ')':
-				fallthrough
-			case r == ']':
-				fallthrough
-			case r == '|':
-				fallthrough
-			case r == '}':
 				return ret, showError(pat, i)
 
 			default:
