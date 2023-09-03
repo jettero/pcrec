@@ -1,42 +1,41 @@
 package lib
 
+import (
+	"fmt"
+)
+
 type NFA struct {
 	States []*State
 }
 
-var one int = 1
+func (n *NFA) SetQty(min int, max int) error {
+	if len(n.States) < 1 {
+		return fmt.Errorf("quantity before repeatable item")
+	}
+	s := n.States[len(n.States)-1]
+	s.Min = min
+	s.Max = max
+	return nil
+}
 
 func (n *NFA) AddRuneState(r rune) *State {
-	n.States = append(n.States, &State{Match: []*Matcher{{min: &r, max: &r}}, min: &one, max: &one})
+	n.States = append(n.States, &State{Match: []*Matcher{{Any: false, First: r, Last: r}}, Min: 1, Max: 1})
 	return n.States[len(n.States)-1]
 }
 
 func (n *NFA) AddDotState() *State {
-	n.States = append(n.States, &State{Match: []*Matcher{{}}, min: &one, max: &one})
-	return n.States[len(n.States)-1]
-}
-
-func (n *NFA) LastOrNewState() *State {
-	if len(n.States) < 1 {
-		n.States = append(n.States, &State{})
-	}
+	n.States = append(n.States, &State{Match: []*Matcher{{Any: true}}, Min: 1, Max: 1})
 	return n.States[len(n.States)-1]
 }
 
 type Matcher struct {
-	min *rune
-	max *rune
+	Any   bool
+	First rune
+	Last  rune
 }
 
 type State struct {
-	Match []*Matcher
-	min   *int
-	max   *int
-}
-
-func (s *State) LastOrNewMatcher() *Matcher {
-	if len(s.Match) < 1 {
-		s.Match = append(s.Match, &Matcher{})
-	}
-	return s.Match[len(s.Match)-1]
+	Match []*Matcher // items in an 'or' group (e.g. a|b|c)
+	Min   int        // min matches
+	Max   int        // max matches or -1 for many
 }
