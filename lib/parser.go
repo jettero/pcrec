@@ -63,6 +63,7 @@ func (p Parser) Parse(pat []rune) (*NFA, error) {
 			switch {
 			// matchers
 			case p.r == '.':
+				p.top.AddDotState()
 			case p.r == '\n':
 			case p.r == '[':
 				p.PushContext(CTX_CCLASS)

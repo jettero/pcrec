@@ -4,15 +4,16 @@ type NFA struct {
 	States []*State
 }
 
-func (n *NFA) AddRuneState(r rune) {
-	one := 1
-	n.States = append(n.States, &State{})
-	s := n.States[len(n.States)-1]
-	s.min = &one
-	s.max = &one
-	m := s.LastOrNewMatcher()
-	m.min = &r
-	m.max = m.min
+var one int = 1
+
+func (n *NFA) AddRuneState(r rune) *State {
+	n.States = append(n.States, &State{Match: []*Matcher{{min: &r, max: &r}}, min: &one, max: &one})
+	return n.States[len(n.States)-1]
+}
+
+func (n *NFA) AddDotState() *State {
+	n.States = append(n.States, &State{Match: []*Matcher{{}}, min: &one, max: &one})
+	return n.States[len(n.States)-1]
 }
 
 func (n *NFA) LastOrNewState() *State {
@@ -31,10 +32,6 @@ type State struct {
 	Match []*Matcher
 	min   *int
 	max   *int
-}
-
-func (s *State) AddRuneMatch() {
-
 }
 
 func (s *State) LastOrNewMatcher() *Matcher {
