@@ -90,14 +90,15 @@ func (p *Parser) RTop() *NFA {
 	return p.top
 }
 
-func (p *Parser) subParseNumber(pat []rune, bitSize int) (int64, error) {
+func (p *Parser) subParseNumber(subpat []rune, bitSize int) (int64, error) {
 	// for bitSize, see 'go doc strconv.ParseInt', we also set up our filters
 	// with it though
-
 	nreg := []rune{}
+	var lim int
+	var needsClosingBrace bool
 	switch {
 	case bitSize == 8:
-		for _, r := range pat {
+		for _, r := range subpat {
 			if '0' <= r && r <= '8' {
 				nreg = append(nreg, r)
 				p.i++
@@ -109,19 +110,45 @@ func (p *Parser) subParseNumber(pat []rune, bitSize int) (int64, error) {
 			}
 		}
 	case bitSize == 16:
-		// XXX: we should change from 2 to 4 chars here if we see \x{1234} (unicode)
 		// XXX: such matching could possibly do the \u1234 syntax too
-		for _, r := range pat {
-			if ('0' <= r && r <= '9') || ('a' <= r && r <= 'f') || ('A' <= r && r <= 'F') {
+		lim = 2
+		p.Printf(" HEX")
+		for _, r := range subpat {
+			if r == '{' {
+				lim = 4
+				needsClosingBrace = true
+				p.Printf(" UNICODE")
+				p.i++ // consume '{'
+			} else if ('0' <= r && r <= '9') || ('a' <= r && r <= 'f') || ('A' <= r && r <= 'F') {
 				nreg = append(nreg, r)
-				p.i++
-				if len(nreg) >= 2 {
+				p.i++ // consume r
+				if len(nreg) >= lim {
+					p.Printf(" l-break %d", p.i)
 					break
 				}
 			} else {
+				p.Printf(" d-break %d", p.i)
 				break
 			}
 		}
+	}
+
+	if needsClosingBrace {
+		p.Printf(" ?-close-brace \"...%s\"", string(p.pat[p.i:len(p.pat)]))
+		if p.pat[p.i] == '}' {
+			p.i++ // consume '}'
+			p.Printf(" close-brace %d", p.i)
+		} else {
+			p.Printf(" error-brace\n")
+			return 0, fmt.Errorf("failed to parse \\x{...} syntax")
+		}
+	}
+
+	p.Printf(" parse-num\n")
+	if p.i < len(p.pat) {
+		p.r = p.pat[p.i]
+	} else {
+		p.r = 0
 	}
 
 	return strconv.ParseInt(string(nreg), bitSize, 0)
@@ -196,9 +223,11 @@ func (p *Parser) Parse(pat []rune) (*NFA, error) {
 				p.RTop().AddRuneState(p.r)
 			}
 		case p.m == CTX_SLASHED:
+			var old_i int = p.i
 			switch {
 			case p.r == 'x':
-				if num, err := p.subParseNumber(pat[p.i+1:len(p.pat)], 16); err == nil {
+				p.i++ // skip the 'x'
+				if num, err := p.subParseNumber(pat[p.i:len(p.pat)], 16); err == nil {
 					p.r = rune(num)
 					p.Printf(" AddRuneState(%d) hex\n", p.r)
 					p.RTop().AddRuneState(p.r)
@@ -211,6 +240,7 @@ func (p *Parser) Parse(pat []rune) (*NFA, error) {
 					p.Printf(" AddRuneState(%d) octal\n", p.r)
 					p.RTop().AddRuneState(p.r)
 				} else {
+					p.i = old_i
 					return p.formatError("failed to parse octal")
 				}
 			default:
