@@ -101,15 +101,23 @@ func (p *Parser) subParseNumber(pat []rune, bitSize int) (int64, error) {
 			if '0' <= r && r <= '8' {
 				nreg = append(nreg, r)
 				p.i++
+				if len(nreg) >= 3 {
+					break
+				}
 			} else {
 				break
 			}
 		}
 	case bitSize == 16:
+		// XXX: we should change from 2 to 4 chars here if we see \x{1234} (unicode)
+		// XXX: such matching could possibly do the \u1234 syntax too
 		for _, r := range pat {
 			if ('0' <= r && r <= '9') || ('a' <= r && r <= 'f') || ('A' <= r && r <= 'F') {
 				nreg = append(nreg, r)
 				p.i++
+				if len(nreg) >= 2 {
+					break
+				}
 			} else {
 				break
 			}
