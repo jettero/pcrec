@@ -9,8 +9,6 @@ const (
 	CTX_NONE int = iota
 	CTX_SLASHED
 	CTX_CCLASS
-	CTX_UNICODE
-	CTX_HEX
 	CTX_GROUP
 	CTX_NQUANT
 )
@@ -92,6 +90,35 @@ func (p *Parser) RTop() *NFA {
 	return p.top
 }
 
+func (p *Parser) subParseNumber(pat []rune, bitSize int) (int64, error) {
+	// for bitSize, see 'go doc strconv.ParseInt', we also set up our filters
+	// with it though
+
+	nreg := []rune{}
+	switch {
+	case bitSize == 8:
+		for _, r := range pat {
+			if '0' <= r && r <= '8' {
+				nreg = append(nreg, r)
+				p.i++
+			} else {
+				break
+			}
+		}
+	case bitSize == 16:
+		for _, r := range pat {
+			if ('0' <= r && r <= '9') || ('a' <= r && r <= 'f') || ('A' <= r && r <= 'F') {
+				nreg = append(nreg, r)
+				p.i++
+			} else {
+				break
+			}
+		}
+	}
+
+	return strconv.ParseInt(string(nreg), bitSize, 0)
+}
+
 func (p *Parser) Parse(pat []rune) (*NFA, error) {
 	p.trace = TruthyEnv("PCREC_TRACE") || TruthyEnv("RE_PARSE_TRACE")
 	p.mode = []Context{{m: CTX_NONE, i: 0}}
@@ -162,11 +189,26 @@ func (p *Parser) Parse(pat []rune) (*NFA, error) {
 			}
 		case p.m == CTX_SLASHED:
 			switch {
-			case p.r == 'u':
-				p.PushContext(CTX_UNICODE)
 			case p.r == 'x':
-				p.PushContext(CTX_HEX)
+				if num, err := p.subParseNumber(pat[p.i+1:len(p.pat)], 16); err == nil {
+					p.r = rune(num)
+					p.Printf(" AddRuneState(%d) hex\n", p.r)
+					p.RTop().AddRuneState(p.r)
+				} else {
+					return p.formatError("failed to parse hex")
+				}
+			case '0' <= p.r && p.r <= '8':
+				if num, err := p.subParseNumber(pat[p.i:len(p.pat)], 8); err == nil {
+					p.r = rune(num)
+					p.Printf(" AddRuneState(%d) octal\n", p.r)
+					p.RTop().AddRuneState(p.r)
+				} else {
+					return p.formatError("failed to parse octal")
+				}
+			default:
+				return p.formatError("TODO")
 			}
+			p.PopContext(false)
 		case p.m == CTX_NQUANT:
 			if p.n == SUB_INIT {
 				p.m_rreg1 = []rune{}
