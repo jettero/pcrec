@@ -90,6 +90,12 @@ func (p *Parser) RTop() *NFA {
 	return p.top
 }
 
+func (p *Parser) RTPop() *NFA {
+	p.PopContext(false)
+	p.n = SUB_REP
+	return p.top
+}
+
 func (p *Parser) subParseNumber(subpat []rune, bitSize int) (int64, error) {
 	// for bitSize, see 'go doc strconv.ParseInt', we also set up our filters
 	// with it though
@@ -134,12 +140,12 @@ func (p *Parser) subParseNumber(subpat []rune, bitSize int) (int64, error) {
 	}
 
 	if needsClosingBrace {
-		p.Printf(" ?-close-brace \"...%s\"", string(p.pat[p.i:len(p.pat)]))
+		p.Printf(" NEED-CLOSE-BRACE \"...%s\"", string(p.pat[p.i:len(p.pat)]))
 		if p.pat[p.i] == '}' {
 			p.i++ // consume '}'
-			p.Printf(" close-brace %d", p.i)
+			p.Printf(" CLOSE-BRACE %d", p.i)
 		} else {
-			p.Printf(" error-brace\n")
+			p.Printf(" ERROR-BRACE\n")
 			return 0, fmt.Errorf("failed to parse \\x{...} syntax")
 		}
 	}
@@ -230,7 +236,7 @@ func (p *Parser) Parse(pat []rune) (*NFA, error) {
 				if num, err := p.subParseNumber(pat[p.i:len(p.pat)], 16); err == nil {
 					p.r = rune(num)
 					p.Printf(" AddRuneState(%d) hex\n", p.r)
-					p.RTop().AddRuneState(p.r)
+					p.RTPop().AddRuneState(p.r)
 				} else {
 					return p.formatError("failed to parse hex")
 				}
@@ -238,15 +244,35 @@ func (p *Parser) Parse(pat []rune) (*NFA, error) {
 				if num, err := p.subParseNumber(pat[p.i:len(p.pat)], 8); err == nil {
 					p.r = rune(num)
 					p.Printf(" AddRuneState(%d) octal\n", p.r)
-					p.RTop().AddRuneState(p.r)
+					p.RTPop().AddRuneState(p.r)
 				} else {
 					p.i = old_i
 					return p.formatError("failed to parse octal")
 				}
+			case p.r == 'g' || p.r == 'a':
+				p.Printf(" AddRuneState(\\g)\n")
+				p.RTPop().AddRuneState(0x07)
+			case p.r == 't':
+				p.Printf(" AddRuneState(\\t)\n")
+				p.RTPop().AddRuneState(0x09)
+			case p.r == 'r':
+				p.Printf(" AddRuneState(\\r)\n")
+				p.RTPop().AddRuneState(0x0d)
+			case p.r == 'n':
+				p.Printf(" AddRuneState(\\n)\n")
+				p.RTPop().AddRuneState(0x0a)
+			case p.r == '0':
+				p.Printf(" AddRuneState(\\0)\n")
+				p.RTPop().AddRuneState(0x00)
+			case p.r == 's':
+				p.Printf(" AddRuneState(\\s)\n")
+				p.RTPop().AddRuneState(' ', '\t', '\n', '\r') // TODO: other shit goes here probably
+			case p.r == 'S':
+				p.RTPop().AddInvertedRuneState(' ', '\t', '\n', '\r')
 			default:
-				return p.formatError("TODO")
+				p.Printf(" AddRuneState(0x%02f)\n", p.r)
+				p.RTPop().AddRuneState(p.r)
 			}
-			p.PopContext(false)
 		case p.m == CTX_NQUANT:
 			if p.n == SUB_INIT {
 				p.m_rreg1 = []rune{}

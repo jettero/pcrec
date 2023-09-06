@@ -26,11 +26,16 @@ var shouldNotCompile = []string{
 	`.{1,2}{1,2}`,
 }
 
+var letteredEscapes = []string{`a`, `g`, `t`, `r`, `n`, `0`, `s`}
 var populateCompileBase = []string{`.`, `a`, `ab`, `[a]`, `[ab]`, `[a-b]`}
 var populateCompileQuant = []string{"", "?", "*", "+", "*?", "+?", "{2,}", "{,3}", "{2,3}"}
+var patQuantFormats = []string{"%s%s", "(%s%s)", "(%s)%s"}
 
 func populateShouldCompile() {
-	for _, gfmt := range []string{"%s%s", "(%s%s)", "(%s)%s"} {
+	for _, s := range letteredEscapes {
+		populateCompileBase = append(populateCompileBase, fmt.Sprintf("\\%s", s))
+	}
+	for _, gfmt := range patQuantFormats {
 		for _, pat := range populateCompileBase {
 			for _, mod := range populateCompileQuant {
 				cpat := fmt.Sprintf(gfmt, pat, mod)
