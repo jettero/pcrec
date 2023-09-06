@@ -80,6 +80,11 @@ func (p *Parser) Printf(format string, args ...interface{}) {
 	}
 }
 
+func (p *Parser) ITop() *NFA {
+	p.n = SUB_INIT
+	return p.top
+}
+
 func (p *Parser) QTop() *NFA {
 	p.n = SUB_QTY
 	return p.top
@@ -199,9 +204,7 @@ func (p *Parser) Parse(pat []rune) (*NFA, error) {
 			case p.r == '?':
 				switch {
 				case p.n == SUB_QTY:
-					s := p.top.States[len(p.top.States)-1]
-					s.Greedy = false
-					p.n = SUB_INIT
+					p.ITop().SetGreedy(false)
 				case p.n == SUB_REP:
 					p.QTop().SetQty(0, 1)
 				default:
