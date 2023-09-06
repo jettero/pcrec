@@ -165,6 +165,59 @@ func (p *Parser) subParseNumber(subpat []rune, bitSize int) (int64, error) {
 	return strconv.ParseInt(string(nreg), bitSize, 0)
 }
 
+func (p *Parser) GrokSlashed() ([]rune, bool, error) {
+	var ret []rune
+	var old_i int = p.i
+	switch p.r {
+	case 'x':
+		p.i++ // skip the 'x'
+		if num, err := p.subParseNumber(p.pat[p.i:len(p.pat)], 16); err == nil {
+			ret = append(ret, rune(num))
+			p.Printf(" GrokSlashed(hex) => %+v\n", ret)
+			return ret, false, nil
+		} else {
+			return nil, false, err
+		}
+	case '0', '1', '2', '3', '4', '5', '6', '7', '8', '9':
+		if num, err := p.subParseNumber(p.pat[p.i:len(p.pat)], 8); err == nil {
+			ret = append(ret, rune(num))
+			p.Printf(" GrokSlashed(oct) => %+v\n", ret)
+			return ret, false, nil
+		} else {
+			p.i = old_i
+			return nil, false, err
+		}
+	case 'g', 'a':
+		ret = append(ret, '\a')
+		p.Printf(" GrokSlashed(\\a) => %+v\n", ret)
+		return ret, false, nil
+	case 't':
+		ret = append(ret, '\t')
+		p.Printf(" GrokSlashed(\\t) => %+v\n", ret)
+		return ret, false, nil
+	case 'r':
+		ret = append(ret, '\r')
+		p.Printf(" GrokSlashed(\\r) => %+v\n", ret)
+		return ret, false, nil
+	case 'n':
+		ret = append(ret, '\n')
+		p.Printf(" GrokSlashed(\\n) => %+v\n", ret)
+		return ret, false, nil
+	case 's':
+		ret = append(ret, ' ', '\t', '\n', '\r')
+		p.Printf(" GrokSlashed(\\s) => %+v\n", ret)
+		return ret, false, nil
+	case 'S':
+		ret = append(ret, ' ', '\t', '\n', '\r')
+		p.Printf(" GrokSlashed(\\S) => !%+v\n", ret)
+		return ret, true, nil
+	default:
+		ret := []rune{p.r}
+		p.Printf(" GrokSlashed(??) => %+v\n", ret)
+		return ret, false, nil
+	}
+}
+
 func (p *Parser) Parse(pat []rune) (*NFA, error) {
 	p.trace = TruthyEnv("PCREC_TRACE") || TruthyEnv("RE_PARSE_TRACE")
 	p.mode = []Context{{m: CTX_NONE, i: 0}}
@@ -174,25 +227,25 @@ func (p *Parser) Parse(pat []rune) (*NFA, error) {
 	for p.i = 0; p.i < len(p.pat); p.i++ {
 		p.r = p.pat[p.i]
 
-		switch {
-		case p.m == CTX_NONE:
-			switch {
+		switch p.m {
+		case CTX_NONE:
+			switch p.r {
 			// matchers
-			case p.r == '.':
+			case '.':
 				p.RTop().AddDotState()
-			case p.r == '\n':
+			case '\n':
 				p.RTop().AddRuneState(p.r) // this may be $ sometimes with /m
-			case p.r == '[':
+			case '[':
 				p.PushContext(CTX_CCLASS)
 
 				// new context
-			case p.r == '(':
+			case '(':
 				p.PushContext(CTX_GROUP)
-			case p.r == '\\':
+			case '\\':
 				p.PushContext(CTX_SLASHED)
 
 				// quantities
-			case p.r == '{':
+			case '{':
 				if p.n == SUB_RET {
 					p.Printf(" AddRuneState(%c) NQUANT-RETURN\n", p.r)
 					p.RTop().AddRuneState(p.r)
@@ -201,7 +254,7 @@ func (p *Parser) Parse(pat []rune) (*NFA, error) {
 					p.PushContext(CTX_NQUANT)
 				}
 
-			case p.r == '?':
+			case '?':
 				switch {
 				case p.n == SUB_QTY:
 					p.ITop().SetGreedy(false)
@@ -210,94 +263,63 @@ func (p *Parser) Parse(pat []rune) (*NFA, error) {
 				default:
 					return p.formatError("quantifier without preceeding repeatable")
 				}
-			case p.r == '*':
+			case '*':
 				switch {
 				case p.n == SUB_REP:
 					p.QTop().SetQty(0, -1)
 				default:
 					return p.formatError("quantifier without preceeding repeatable")
 				}
-			case p.r == '+':
+			case '+':
 				switch {
 				case p.n == SUB_REP:
 					p.QTop().SetQty(1, -1)
 				default:
 					return p.formatError("quantifier without preceeding repeatable")
 				}
-			case p.r == ')':
+			case ')':
 				return p.formatError("")
 
 			default:
 				p.Printf(" AddRuneState(%c) default\n", p.r)
 				p.RTop().AddRuneState(p.r)
 			}
-		case p.m == CTX_SLASHED:
-			var old_i int = p.i
-			switch {
-			case p.r == 'x':
-				p.i++ // skip the 'x'
-				if num, err := p.subParseNumber(pat[p.i:len(p.pat)], 16); err == nil {
-					p.r = rune(num)
-					p.Printf(" AddRuneState(%d) hex\n", p.r)
-					p.RTPop().AddRuneState(p.r)
-				} else {
-					return p.formatError("failed to parse hex")
-				}
-			case '0' <= p.r && p.r <= '8':
-				if num, err := p.subParseNumber(pat[p.i:len(p.pat)], 8); err == nil {
-					p.r = rune(num)
-					p.Printf(" AddRuneState(%d) octal\n", p.r)
-					p.RTPop().AddRuneState(p.r)
-				} else {
-					p.i = old_i
-					return p.formatError("failed to parse octal")
-				}
-			case p.r == 'g' || p.r == 'a':
-				p.Printf(" AddRuneState(\\g)\n")
-				p.RTPop().AddRuneState(0x07)
-			case p.r == 't':
-				p.Printf(" AddRuneState(\\t)\n")
-				p.RTPop().AddRuneState(0x09)
-			case p.r == 'r':
-				p.Printf(" AddRuneState(\\r)\n")
-				p.RTPop().AddRuneState(0x0d)
-			case p.r == 'n':
-				p.Printf(" AddRuneState(\\n)\n")
-				p.RTPop().AddRuneState(0x0a)
-			case p.r == '0':
-				p.Printf(" AddRuneState(\\0)\n")
-				p.RTPop().AddRuneState(0x00)
-			case p.r == 's':
-				p.Printf(" AddRuneState(\\s)\n")
-				p.RTPop().AddRuneState(' ', '\t', '\n', '\r') // TODO: other shit goes here probably
-			case p.r == 'S':
-				p.RTPop().AddInvertedRuneState(' ', '\t', '\n', '\r')
-			default:
-				p.Printf(" AddRuneState(0x%02f)\n", p.r)
-				p.RTPop().AddRuneState(p.r)
+		case CTX_SLASHED:
+			runes, inverted, err := p.GrokSlashed()
+			if err != nil {
+				return p.formatError(err.Error())
 			}
-		case p.m == CTX_NQUANT:
+			p.r = runes[0]
+			if inverted {
+				p.Printf(" AddRuneState(%+v) CTX_SLASHED\n", runes)
+				p.RTop().AddInvertedRuneState(runes...)
+			} else {
+				p.Printf(" AddInvertedRuneState(%+v) CTX_SLASHED\n", runes)
+				p.RTop().AddRuneState(runes...)
+			}
+
+		case CTX_NQUANT:
 			if p.n == SUB_INIT {
 				p.m_rreg1 = []rune{}
 				p.m_rreg2 = []rune{}
 				p.n = SUB_LHS
 			}
-			switch {
-			case '0' <= p.r && p.r <= '9':
-				switch {
-				case p.n == SUB_LHS:
+			switch p.r {
+			case '0', '1', '2', '3', '4', '5', '6', '7', '8', '9':
+				switch p.n {
+				case SUB_LHS:
 					p.m_rreg1 = append(p.m_rreg1, p.r)
-				case p.n == SUB_RHS:
+				case SUB_RHS:
 					p.m_rreg2 = append(p.m_rreg2, p.r)
 				}
-			case p.r == ',':
-				switch {
-				case p.n == SUB_LHS:
+			case ',':
+				switch p.n {
+				case SUB_LHS:
 					p.n = SUB_RHS
 				default:
 					return p.formatError("")
 				}
-			case p.r == '}':
+			case '}':
 				if len(p.m_rreg1) > 0 || len(p.m_rreg2) > 0 {
 					if p.mode[len(p.mode)-1].n != SUB_REP {
 						return p.formatError("quantifier without preceeding repeatable")
