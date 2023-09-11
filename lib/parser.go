@@ -35,6 +35,7 @@ type Parser struct {
 
 	m_rreg1 []rune // tmp storage
 	m_rreg2 []rune
+	m_sreg  *State
 }
 
 type Context struct {
@@ -80,24 +81,8 @@ func (p *Parser) Printf(format string, args ...interface{}) {
 	}
 }
 
-func (p *Parser) ITop() *NFA {
-	p.n = SUB_INIT
-	return p.top
-}
-
-func (p *Parser) QTop() *NFA {
-	p.n = SUB_QTY
-	return p.top
-}
-
-func (p *Parser) RTop() *NFA {
-	p.n = SUB_REP
-	return p.top
-}
-
-func (p *Parser) RTPop() *NFA {
-	p.PopContext(false)
-	p.n = SUB_REP
+func (p *Parser) Top(sub int) *NFA {
+	p.n = sub
 	return p.top
 }
 
@@ -230,60 +215,66 @@ func (p *Parser) Parse(pat []rune) (*NFA, error) {
 		switch p.m {
 		case CTX_NONE:
 			switch p.r {
-			// matchers
-			case '.':
-				p.RTop().AddDotState()
-			case '\n':
-				p.RTop().AddRuneState(p.r) // this may be $ sometimes with /m
 			case '[':
 				p.PushContext(CTX_CCLASS)
-
-				// new context
 			case '(':
 				p.PushContext(CTX_GROUP)
 			case '\\':
 				p.PushContext(CTX_SLASHED)
-
-				// quantities
 			case '{':
 				if p.n == SUB_RET {
 					p.Printf(" AddRuneState(%c) NQUANT-RETURN\n", p.r)
-					p.RTop().AddRuneState(p.r)
-					p.n = SUB_REP
+					p.Top(SUB_REP).AddRuneState(p.r)
 				} else {
 					p.PushContext(CTX_NQUANT)
 				}
-
 			case '?':
 				switch {
 				case p.n == SUB_QTY:
-					p.ITop().SetGreedy(false)
+					p.Top(SUB_INIT).SetGreedy(false)
 				case p.n == SUB_REP:
-					p.QTop().SetQty(0, 1)
+					p.Top(SUB_QTY).SetQty(0, 1)
 				default:
 					return p.formatError("quantifier without preceeding repeatable")
 				}
 			case '*':
 				switch {
 				case p.n == SUB_REP:
-					p.QTop().SetQty(0, -1)
+					p.Top(SUB_QTY).SetQty(0, -1)
 				default:
 					return p.formatError("quantifier without preceeding repeatable")
 				}
 			case '+':
 				switch {
 				case p.n == SUB_REP:
-					p.QTop().SetQty(1, -1)
+					p.Top(SUB_QTY).SetQty(1, -1)
 				default:
 					return p.formatError("quantifier without preceeding repeatable")
 				}
 			case ')':
 				return p.formatError("")
-
+			case '.':
+				p.Top(SUB_REP).AddDotState()
+			case '\n':
+				p.Top(SUB_REP).AddRuneState(p.r) // this may be $ sometimes with /m
 			default:
 				p.Printf(" AddRuneState(%c) default\n", p.r)
-				p.RTop().AddRuneState(p.r)
+				p.Top(SUB_REP).AddRuneState(p.r)
 			}
+
+		case CTX_CCLASS:
+			if p.n == SUB_INIT {
+				p.n = SUB_LHS
+			}
+			switch p.r {
+			default:
+				if p.n == SUB_LHS {
+					p.m_sreg = p.Top(SUB_LHS).AddRuneState(p.r)
+				} else {
+					p.sreg.AppendMatch(p.r)
+				}
+			}
+
 		case CTX_SLASHED:
 			runes, inverted, err := p.GrokSlashed()
 			if err != nil {
@@ -292,10 +283,10 @@ func (p *Parser) Parse(pat []rune) (*NFA, error) {
 			p.r = runes[0]
 			if inverted {
 				p.Printf(" AddRuneState(%+v) CTX_SLASHED\n", runes)
-				p.RTop().AddInvertedRuneState(runes...)
+				p.Top(SUB_REP).AddInvertedRuneState(runes...)
 			} else {
 				p.Printf(" AddInvertedRuneState(%+v) CTX_SLASHED\n", runes)
-				p.RTop().AddRuneState(runes...)
+				p.Top(SUB_REP).AddRuneState(runes...)
 			}
 
 		case CTX_NQUANT:
@@ -333,7 +324,7 @@ func (p *Parser) Parse(pat []rune) (*NFA, error) {
 						b = int(num)
 					}
 					p.PopContext(false)
-					p.QTop().SetQty(a, b)
+					p.Top(SUB_QTY).SetQty(a, b)
 				} else {
 					p.PopContext(true)
 				}
