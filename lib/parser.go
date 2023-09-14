@@ -266,12 +266,19 @@ func (p *Parser) Parse(pat []rune) (*NFA, error) {
 			if p.n == SUB_INIT {
 				p.n = SUB_LHS
 			}
-			switch p.r {
-			default:
-				if p.n == SUB_LHS {
-					p.m_sreg = p.Top(SUB_LHS).AddRuneState(p.r)
-				} else {
-					p.sreg.AppendMatch(p.r)
+			switch p.n {
+			case SUB_LHS:
+				p.m_sreg = p.Top(SUB_RHS).AddRuneState(p.r)
+			case SUB_RHS:
+				switch p.r {
+				case '-':
+					// XXX
+				case ']':
+					p.n = SUB_LHS
+				default:
+					if err := p.m_sreg.AppendToLastMatch(p.r, false); err != nil {
+						return p.formatError(err.Error())
+					}
 				}
 			}
 

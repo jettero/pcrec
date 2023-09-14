@@ -1,5 +1,9 @@
 package lib
 
+import (
+	"fmt"
+)
+
 type NFA struct {
 	States []Stateish
 }
@@ -149,6 +153,7 @@ type State struct {
 	Match  []*Matcher // items in an 'or' group (e.g. a|b|c)
 	Min    int        // min matches
 	Max    int        // max matches or -1 for many
+	And    bool       // a&b&c, useful for: [^abc] => (^a&^b&^c) ≡ ^(a|b|c)
 	Greedy bool
 }
 
@@ -163,6 +168,18 @@ func (s *State) Matches(r rune) bool {
 
 func (s *State) AppendDotMatch() {
 	s.Match = append(s.Match, &Matcher{Any: true})
+}
+
+func (s *State) AppendToLastMatch(r rune, inverse bool) error {
+	i := len(s.Match) - 1
+	if i < 0 {
+		return fmt.Errorf("unable to append %d to last match as there are no matches in %+v", r, s)
+	}
+	if r < s.Match[i].First {
+		return fmt.Errorf("unable to append %d to last match %+v, out of order", r, s.Match[i])
+	}
+	s.Match[i].Last = r
+	return nil
 }
 
 func (s *State) AppendMatch(r rune, inverse bool) {
