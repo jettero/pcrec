@@ -264,20 +264,30 @@ func (p *Parser) Parse(pat []rune) (*NFA, error) {
 
 		case CTX_CCLASS:
 			if p.n == SUB_INIT {
-				p.n = SUB_LHS
-			}
-			switch p.n {
-			case SUB_LHS:
 				p.m_sreg = p.Top(SUB_RHS).AddRuneState(p.r)
-			case SUB_RHS:
-				switch p.r {
-				case '-':
-					// XXX
-				case ']':
-					p.n = SUB_LHS
-				default:
-					if err := p.m_sreg.AppendToLastMatch(p.r, false); err != nil {
-						return p.formatError(err.Error())
+			}
+			switch p.r {
+			case ']':
+				if p.n == SUB_RHS {
+					p.m_sreg.AppendMatch('-', false)
+				}
+				p.PopContext(false)
+			default:
+				switch p.n {
+				case SUB_LHS:
+					switch p.r {
+					case '-':
+						p.n = SUB_RHS
+					default:
+						p.m_sreg.AppendMatch(p.r, false)
+					}
+				case SUB_RHS:
+					switch p.r {
+					default:
+						if err := p.m_sreg.AppendToLastMatch(p.r, false); err != nil {
+							return p.formatError(err.Error())
+						}
+						p.n = SUB_LHS
 					}
 				}
 			}
