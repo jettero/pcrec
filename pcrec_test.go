@@ -8,6 +8,12 @@ import (
 
 var shouldCompile = []string{
 	`(a|b|ab|(a)(b)|(ab)|[ab][a][b])`,
+	`[abcdefABCDEF]`,
+	`[a-fA-F]`,
+	`[a]`,
+	`[ab]`,
+	`[a-b]`,
+	`[a-b-]`,
 
 	// seems ludicrous, but these should compile
 	// the seemingly erroneous symbols just become literals
@@ -15,6 +21,12 @@ var shouldCompile = []string{
 	`a{}`, `a{,}`, `a]`, `a}`,
 }
 var shouldNotCompile = []string{
+	`)`,
+	`.)`,
+	`ab)`,
+	`(`,
+	`(.`,
+	`(ab`,
 	`*ab`,
 	`?ab`,
 	`ab)`,
@@ -51,7 +63,7 @@ func TestCompile(t *testing.T) {
 		t.Run(fmt.Sprintf("pat=`%s`", pat), func(t *testing.T) {
 			_, err := pcrec.ParseString(pat)
 			if err != nil {
-				t.Error(fmt.Sprintf("`%s` should compile but did not: %s", pat, err))
+				t.Error(fmt.Sprintf("`%s` should compile but did not:\n%s", pat, err))
 			}
 		})
 	}

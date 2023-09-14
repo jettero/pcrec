@@ -12,6 +12,7 @@ type Stateish interface {
 	SetQty(min, max int)
 	SetGreedy(f bool)
 	LastStateish() Stateish
+	LastOpenGroup() *Group
 }
 
 func (n *NFA) SetQty(min int, max int) {
@@ -67,18 +68,58 @@ func (g *Group) LastStateish() Stateish {
 	return g.States[lgs][lgss]
 }
 
+func (s *State) LastOpenGroup() *Group {
+	return nil
+}
+
+func (g *Group) LastOpenGroup() *Group {
+	if i := len(g.States) - 1; i >= 0 {
+		if j := len(g.States[i]) - 1; j >= 0 {
+			if lg := g.States[i][j].LastOpenGroup(); lg != nil {
+				return lg
+			}
+		}
+	}
+	if !g.closed {
+		return g
+	}
+
+	return nil
+}
+
+func (n *NFA) LastOpenGroup() *Group {
+	if i := len(n.States) - 1; i >= 0 {
+		return n.States[i].LastOpenGroup()
+	}
+	return nil
+}
+
+func (n *NFA) AppendGroup() {
+	if lg := n.LastOpenGroup(); lg != nil {
+		lg.AppendGroup(1, 1, true)
+	} else {
+		n.States = append(n.States, &Group{Min: 1, Max: 1, Greedy: true})
+	}
+}
+
+func (n *NFA) CloseGroup() error {
+	if lg := n.LastOpenGroup(); lg != nil {
+		lg.closed = true
+		return nil
+	}
+	return fmt.Errorf("unmatched closing parenthesis")
+}
+
 func (n *NFA) AppendState(min int, max int, greedy bool) *State {
-	ls := n.LastStateish()
-	switch typed := ls.(type) {
-	case *Group:
-		return typed.AppendState(min, max, greedy)
+	if lg := n.LastOpenGroup(); lg != nil {
+		return lg.AppendState(min, max, greedy)
 	}
 	ret := &State{Min: min, Max: max, Greedy: greedy}
 	n.States = append(n.States, ret)
 	return ret
 }
 
-func (n *NFA) AddRuneState(runes ...rune) *State {
+func (n *NFA) AppendRuneState(runes ...rune) *State {
 	s := n.AppendState(1, 1, true)
 	for _, r := range runes {
 		s.AppendMatch(r, false)
@@ -86,7 +127,7 @@ func (n *NFA) AddRuneState(runes ...rune) *State {
 	return s
 }
 
-func (n *NFA) AddInvertedRuneState(runes ...rune) *State {
+func (n *NFA) AppendInvertedRuneState(runes ...rune) *State {
 	s := n.AppendState(1, 1, true)
 	for _, r := range runes {
 		s.AppendMatch(r, true)
@@ -94,7 +135,7 @@ func (n *NFA) AddInvertedRuneState(runes ...rune) *State {
 	return s
 }
 
-func (n *NFA) AddDotState() *State {
+func (n *NFA) AppendDotState() *State {
 	s := n.AppendState(1, 1, true)
 	s.AppendDotMatch()
 	return s
@@ -115,9 +156,9 @@ func (m *Matcher) Matches(r rune) bool {
 }
 
 type Group struct {
-	States  [][]*State // []*State OR []*State OR ...
-	Min     int        // min matches
-	Max     int        // max matches or -1 for many
+	States  [][]Stateish // []Stateish OR []Stateish OR …
+	Min     int          // min matches
+	Max     int          // max matches or -1 for many
 	Capture bool
 	Greedy  bool
 
@@ -125,28 +166,22 @@ type Group struct {
 	closed bool
 }
 
-func (g *Group) AppendState(min int, max int, greedy bool) *State {
-	ret := &State{Min: min, Max: max, Greedy: greedy}
-	lgs := len(g.States) - 1
-	if lgs < 0 {
-		g.States = append(g.States, []*State{ret})
-
+func (g *Group) AppendGroup(min int, max int, greedy bool) {
+	if i := len(g.States) - 1; i >= 0 {
+		g.States[i] = append(g.States[i], &Group{Min: min, Max: max, Greedy: greedy})
 	} else {
-		g.States[lgs] = append(g.States[lgs], ret)
+		g.States = append(g.States, []Stateish{&Group{Min: min, Max: max, Greedy: greedy}})
 	}
-	return ret
 }
 
-func (g *Group) GetOrCreateLastState() *State {
-	lgs := len(g.States) - 1
-	if lgs < 0 {
-		return g.AppendState(1, 1, true)
+func (g *Group) AppendState(min int, max int, greedy bool) *State {
+	ret := &State{Min: min, Max: max, Greedy: greedy}
+	if i := len(g.States) - 1; i >= 0 {
+		g.States[i] = append(g.States[i], ret)
+	} else {
+		g.States = append(g.States, []Stateish{ret})
 	}
-	lgss := len(g.States[lgs]) - 1
-	if lgss < 0 {
-		return g.AppendState(1, 1, true)
-	}
-	return g.States[lgs][lgss]
+	return ret
 }
 
 type State struct {

@@ -15,7 +15,7 @@ func main() {
 		fmt.Println()
 		if err != nil {
 			fmt.Printf("RE-ARG: %s\n", arg)
-			fmt.Printf("ERROR:  %+v\n", err)
+			fmt.Printf("%+v\n", err)
 		}
 		fmt.Println()
 	}
