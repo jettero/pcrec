@@ -222,6 +222,8 @@ func (p *Parser) Parse(pat []rune) (*NFA, error) {
 	p.top = &NFA{}
 	p.pat = pat
 
+	p.Printf("----------------------=: Parse(%+v) :=-----------------------\n", pat)
+
 	for p.i = 0; p.i < len(p.pat); p.i++ {
 		p.r = p.pat[p.i]
 		p.Printf(" -- p.pat[%d]: '%c'; |p.mode|: %d; p.mn: %d.%d\n", p.i, p.r, len(p.mode), p.m, p.n)

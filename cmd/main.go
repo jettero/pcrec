@@ -9,7 +9,6 @@ import (
 
 func main() {
 	for _, arg := range os.Args[1:] {
-		fmt.Printf("-------------=: parsing, \"%s\"\n", arg)
 		nfa, err := pcrec.ParseString(arg)
 		pp.Print(nfa) // why doesn't this print its own newlin? pfft
 		fmt.Println()
