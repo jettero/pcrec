@@ -99,7 +99,7 @@ func (p *Parser) Top(sub int) *NFA {
 	return p.top
 }
 
-func (p *Parser) subParseNumber(subpat []rune, bitSize int) (int64, error) {
+func (p *Parser) subParseInt64(subpat []rune, bitSize int) (int64, error) {
 	// for bitSize, see 'go doc strconv.ParseInt', we also set up our filters
 	// with it though
 	nreg := []rune{}
@@ -170,7 +170,7 @@ func (p *Parser) GrokSlashed() ([]rune, bool, error) {
 	switch p.r {
 	case 'x':
 		p.i++ // skip the 'x'
-		if num, err := p.subParseNumber(p.pat[p.i:len(p.pat)], 16); err == nil {
+		if num, err := p.subParseInt64(p.pat[p.i:len(p.pat)], 16); err == nil {
 			ret = append(ret, rune(num))
 			p.Printf("  GrokSlashed(hex) => %+v\n", ret)
 			return ret, false, nil
@@ -178,7 +178,7 @@ func (p *Parser) GrokSlashed() ([]rune, bool, error) {
 			return nil, false, err
 		}
 	case '0', '1', '2', '3', '4', '5', '6', '7', '8', '9':
-		if num, err := p.subParseNumber(p.pat[p.i:len(p.pat)], 8); err == nil {
+		if num, err := p.subParseInt64(p.pat[p.i:len(p.pat)], 8); err == nil {
 			ret = append(ret, rune(num))
 			p.Printf("  GrokSlashed(oct) => %+v\n", ret)
 			return ret, false, nil
