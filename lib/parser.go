@@ -48,10 +48,11 @@ func (p *Parser) formatError(msg string) (*NFA, error) {
 	if len(msg) > 0 {
 		firstPart = fmt.Sprintf("ERROR: %s", msg)
 	}
+	p.Printf("  formatError() p.i=%d, p.r=%d, p.mn=%d.%d\n", p.i, p.r, p.m, p.n)
 	if p.i >= len(p.pat) {
 		return p.top, fmt.Errorf("%s at end of pattern", firstPart)
 	}
-	return p.top, fmt.Errorf("%s at position %d '%c'", firstPart, p.i+1, p.pat[p.i+1])
+	return p.top, fmt.Errorf("%s at position %d '%c'", firstPart, p.i+1, p.pat[p.i])
 }
 
 func (p *Parser) PushContextN(c int, n int) {
