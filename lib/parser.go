@@ -107,46 +107,51 @@ func (p *Parser) subParseInt64(subpat []rune, bitSize int) (int64, error) {
 	var needsClosingBrace bool
 	switch {
 	case bitSize == 8:
+		lim = 3
 		for _, r := range subpat {
 			if '0' <= r && r <= '8' {
 				nreg = append(nreg, r)
-				p.i++
-				if len(nreg) >= 3 {
+				if len(nreg) >= lim {
+					p.Printf("  l-break %d\n", p.i)
 					break
 				}
+				p.i++ // consume
 			} else {
+				p.Printf("  d-break %d\n", p.i)
+				p.i-- // regurgitate
 				break
 			}
 		}
 	case bitSize == 16:
 		// XXX: such matching could possibly do the \u1234 syntax too
 		lim = 2
-		p.Printf("  HEX")
+		p.Printf("  HEX\n")
 		for _, r := range subpat {
 			if r == '{' {
 				lim = 4
 				needsClosingBrace = true
-				p.Printf("  UNICODE")
+				p.Printf("  UNICODE\n")
 				p.i++ // consume '{'
 			} else if ('0' <= r && r <= '9') || ('a' <= r && r <= 'f') || ('A' <= r && r <= 'F') {
 				nreg = append(nreg, r)
-				p.i++ // consume r
 				if len(nreg) >= lim {
-					p.Printf("  l-break %d", p.i)
+					p.Printf("  l-break %d\n", p.i)
 					break
 				}
+				p.i++ // consume r
 			} else {
-				p.Printf("  d-break %d", p.i)
+				p.Printf("  d-break %d\n", p.i)
+				p.i-- // regurgitate
 				break
 			}
 		}
 	}
 
 	if needsClosingBrace {
-		p.Printf("  NEED-CLOSE-BRACE \"...%s\"", string(p.pat[p.i:len(p.pat)]))
+		p.Printf("  NEED-CLOSE-BRACE \"...%s\"\n", string(p.pat[p.i:len(p.pat)]))
 		if p.pat[p.i] == '}' {
 			p.i++ // consume '}'
-			p.Printf("  CLOSE-BRACE %d", p.i)
+			p.Printf("  CLOSE-BRACE %d\n", p.i)
 		} else {
 			p.Printf("  ERROR-BRACE\n")
 			return 0, fmt.Errorf("failed to parse \\x{...} syntax")
@@ -325,7 +330,8 @@ func (p *Parser) Parse(pat []rune) (*NFA, error) {
 			if err != nil {
 				return p.formatError(err.Error())
 			}
-			p.r = runes[0]
+			p.PopContext(false) // we're done with CTX_SLASHED
+			p.r = runes[0]      // we should always get at least one rune
 			if inverted {
 				p.Top(SUB_REP).AppendInvertedRuneState(runes...)
 			} else {
@@ -370,9 +376,9 @@ func (p *Parser) Parse(pat []rune) (*NFA, error) {
 					}
 					p.PopContext(false)
 					p.Top(SUB_QTY).SetQty(a, b)
-					p.Printf("  SET  NQUANT QTY(%d,%d)\n", a, b)
+					p.Printf("  SetQty(%d,%d) NQUANT\n", a, b)
 				} else {
-					p.Printf("  ABRT NQUANT, reparse\n")
+					p.Printf("  abort NQUANT, reparse\n")
 					p.PopContext(true)
 				}
 			}
