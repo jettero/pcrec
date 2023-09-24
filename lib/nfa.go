@@ -13,6 +13,7 @@ type Stateish interface {
 	SetGreedy(f bool)
 	LastStateish() Stateish
 	LastOpenGroup() *Group
+	Describe(indent int) string
 }
 
 func (n *NFA) SetQty(min int, max int) {
