@@ -145,6 +145,7 @@ func (n *NFA) AppendRuneState(runes ...rune) *State {
 
 func (n *NFA) AppendInvertedRuneState(runes ...rune) *State {
 	s := n.AppendState(1, 1, true)
+	s.And = true
 	for _, r := range runes {
 		s.AppendMatch(r, true)
 	}
