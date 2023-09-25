@@ -76,8 +76,7 @@ func (p *Parser) PopContextN(restore_i bool, n int) {
 		p.mode = p.mode[:len(p.mode)-1]
 		p.m = p.mode[len(p.mode)-1].m
 		if restore_i {
-			p.i = o.i - 1 // gets incremented immediately after pop, so go one early
-			p.r = p.pat[p.i]
+			p.Seek(o.i - 1) // gets incremented immediately after pop, so go one early
 			p.n = SUB_RET
 		} else {
 			p.n = n
@@ -115,10 +114,10 @@ func (p *Parser) subParseInt64(subpat []rune, bitSize int) (int64, error) {
 					p.Printf("  l-break %d\n", p.i)
 					break
 				}
-				p.i++ // consume
+				p.Consume(1)
 			} else {
 				p.Printf("  d-break %d\n", p.i)
-				p.i-- // regurgitate
+				p.Consume(-1) // put back the delimiter character
 				break
 			}
 		}
@@ -131,17 +130,17 @@ func (p *Parser) subParseInt64(subpat []rune, bitSize int) (int64, error) {
 				lim = 4
 				needsClosingBrace = true
 				p.Printf("  UNICODE\n")
-				p.i++ // consume '{'
+				p.Consume(1) // eat '{'
 			} else if ('0' <= r && r <= '9') || ('a' <= r && r <= 'f') || ('A' <= r && r <= 'F') {
 				nreg = append(nreg, r)
 				if len(nreg) >= lim {
 					p.Printf("  l-break %d\n", p.i)
 					break
 				}
-				p.i++ // consume r
+				p.Consume(1)
 			} else {
 				p.Printf("  d-break %d\n", p.i)
-				p.i-- // regurgitate
+				p.Consume(-1) // put back the delimiter character
 				break
 			}
 		}
@@ -150,7 +149,7 @@ func (p *Parser) subParseInt64(subpat []rune, bitSize int) (int64, error) {
 	if needsClosingBrace {
 		p.Printf("  NEED-CLOSE-BRACE \"...%s\"\n", string(p.pat[p.i:len(p.pat)]))
 		if p.pat[p.i] == '}' {
-			p.i++ // consume '}'
+			p.Consume(1)
 			p.Printf("  CLOSE-BRACE %d\n", p.i)
 		} else {
 			p.Printf("  ERROR-BRACE\n")
@@ -159,11 +158,6 @@ func (p *Parser) subParseInt64(subpat []rune, bitSize int) (int64, error) {
 	}
 
 	p.Printf("  parse-num\n")
-	if p.i < len(p.pat) {
-		p.r = p.pat[p.i]
-	} else {
-		p.r = 0
-	}
 
 	return strconv.ParseInt(string(nreg), bitSize, 0)
 }
@@ -174,7 +168,7 @@ func (p *Parser) GrokSlashed() ([]rune, bool, error) {
 	var old_i int = p.i
 	switch p.r {
 	case 'x':
-		p.i++ // skip the 'x'
+		p.Consume(1) // skip the 'x'
 		if num, err := p.subParseInt64(p.pat[p.i:len(p.pat)], 16); err == nil {
 			ret = append(ret, rune(num))
 			p.Printf("  GrokSlashed(hex) => %+v\n", ret)
@@ -188,7 +182,7 @@ func (p *Parser) GrokSlashed() ([]rune, bool, error) {
 			p.Printf("  GrokSlashed(oct) => %+v\n", ret)
 			return ret, false, nil
 		} else {
-			p.i = old_i
+			p.Seek(old_i)
 			return nil, false, err
 		}
 	case 'g', 'a':
@@ -222,6 +216,24 @@ func (p *Parser) GrokSlashed() ([]rune, bool, error) {
 	}
 }
 
+func (p *Parser) Seek(i int) {
+	p.i = i
+	if p.i >= 0 && p.i < len(p.pat) {
+		p.r = p.pat[p.i]
+	} else {
+		p.r = 0
+	}
+}
+
+func (p *Parser) Consume(i int) {
+	p.i += i
+	if p.i >= 0 && p.i < len(p.pat) {
+		p.r = p.pat[p.i]
+	} else {
+		p.r = 0
+	}
+}
+
 func (p *Parser) Parse(pat []rune) (*NFA, error) {
 	p.trace = TruthyEnv("PCREC_TRACE") || TruthyEnv("RE_PARSE_TRACE")
 	p.mode = []Context{{m: CTX_NONE, i: 0}}
@@ -230,8 +242,7 @@ func (p *Parser) Parse(pat []rune) (*NFA, error) {
 
 	p.Printf("----------------------=: Parse(%+v) :=-----------------------\n", pat)
 
-	for p.i = 0; p.i < len(p.pat); p.i++ {
-		p.r = p.pat[p.i]
+	for p.Seek(0); p.i < len(p.pat); p.Consume(1) {
 		p.Printf(" -- p.pat[%d]: '%c'; |p.mode|: %d; p.mn: %d.%d\n", p.i, p.r, len(p.mode), p.m, p.n)
 
 		switch p.m {
@@ -248,7 +259,9 @@ func (p *Parser) Parse(pat []rune) (*NFA, error) {
 					return p.formatError("unmatched closing parenthesis")
 				}
 			case '|':
-				p.Top(SUB_INIT).AppendOrToGroupOrCreateGroup()
+				if p.Top(SUB_INIT).AppendOrToGroupOrCreateGroup() {
+					p.Printf("  IMPLICIT TOP GROUP\n")
+				}
 			case '\\':
 				p.PushContext(CTX_SLASHED)
 			case '{':
@@ -300,7 +313,27 @@ func (p *Parser) Parse(pat []rune) (*NFA, error) {
 				p.Printf("  INIT CCLASS\n")
 			}
 			switch p.r {
-			// XXX: missing case '\'
+			case '\\':
+				p.Consume(1)
+				p.Printf("  GrokSlashed() in cclass p.i=%d, p.r=%d, p.mn=%d.%d\n",
+					p.i, p.r, p.m, p.n)
+				runes, inverted, err := p.GrokSlashed()
+				if err != nil {
+					return p.formatError(err.Error())
+				}
+				// XXX: what do we do if we get [abc\S] ?
+				// this will be dead wrong, I think Matcher needs a rework
+				// XXX: what does [^\S] even mean? Prolly it means \s, can we make it work?
+				for _, r := range runes {
+					switch p.n {
+					case SUB_LHS:
+						// Apparently AppendMatch tries to handle inverted internally, will this just work?
+						p.m_sreg.AppendMatch(r, inverted)
+					case SUB_RHS:
+						// XXX: is [x-y] ever valid if y is \s or \g? sometimes maybe?
+						return p.formatError("invalid range in character class")
+					}
+				}
 			case ']':
 				if p.n == SUB_RHS {
 					p.m_sreg.AppendMatch('-', false)
@@ -324,6 +357,8 @@ func (p *Parser) Parse(pat []rune) (*NFA, error) {
 					}
 					p.n = SUB_LHS
 					p.Printf("  RHS->LHS\n")
+				default:
+					return p.formatError(fmt.Sprintf("internal error, bad cclas sub-state p.mn=%d,%d", p.m, p.n))
 				}
 			}
 
@@ -333,7 +368,6 @@ func (p *Parser) Parse(pat []rune) (*NFA, error) {
 				return p.formatError(err.Error())
 			}
 			p.PopContext(false) // we're done with CTX_SLASHED
-			p.r = runes[0]      // we should always get at least one rune
 			if inverted {
 				p.Top(SUB_REP).AppendInvertedRuneState(runes...)
 			} else {
@@ -386,9 +420,13 @@ func (p *Parser) Parse(pat []rune) (*NFA, error) {
 			}
 		}
 	}
+
+	p.top.CloseImplicitTopGroups()
+
 	if p.top.LastOpenGroup() != nil {
 		return p.formatError("missing closing perenthesis")
 	}
+
 	return p.top, nil
 }
 

@@ -50,19 +50,25 @@ func (n *NFA) LastStateish() Stateish {
 	return n.States[ls].LastStateish()
 }
 
-func (n *NFA) AppendOrToGroupOrCreateGroup() {
+func (n *NFA) AppendOrToGroupOrCreateGroup() bool {
 	// you are here:
 	// aba|
 	// (a|b|
 	if lg := n.LastOpenGroup(); lg != nil {
 		lg.AppendOrClause()
-	} else if ls := n.LastStateish(); ls == nil {
-		// if the top level reg is a group, it's not a greedy one
-		n.States = append(n.States, &Group{Min: 1, Max: 1, Greedy: false})
-
-	} else {
-		n.States = []Stateish{&Group{Min: 1, Max: 1, Greedy: false, States: [][]Stateish{n.States}}}
+		return false
 	}
+
+	// really, if we get an '|' pipe, it's either going to be in an open group
+	// (above) or it's going to be in the top level expression …
+	//
+	// There's really no need to check anything further wrt that. Just replace
+	// the top level states with the open group.
+
+	g := &Group{Implicit: true, Min: 1, Max: 1, States: [][]Stateish{n.States}}
+	n.States = []Stateish{g}
+
+	return true
 }
 
 func (s *State) LastStateish() Stateish {
@@ -70,7 +76,7 @@ func (s *State) LastStateish() Stateish {
 }
 
 func (g *Group) LastStateish() Stateish {
-	if g.closed {
+	if g.Closed {
 		return g
 	}
 	lgs := len(g.States) - 1
@@ -96,7 +102,7 @@ func (g *Group) LastOpenGroup() *Group {
 			}
 		}
 	}
-	if !g.closed {
+	if !g.Closed {
 		return g
 	}
 
@@ -120,10 +126,17 @@ func (n *NFA) AppendGroup() {
 
 func (n *NFA) CloseGroup() error {
 	if lg := n.LastOpenGroup(); lg != nil {
-		lg.closed = true
+		lg.Closed = true
 		return nil
 	}
 	return fmt.Errorf("unmatched closing parenthesis")
+}
+
+func (n *NFA) CloseImplicitTopGroups() {
+	if log := n.LastOpenGroup(); log != nil && log.Implicit {
+		// There should only be the one anyway, right? ... right??
+		log.Closed = true
+	}
 }
 
 func (n *NFA) AppendState(min int, max int, greedy bool) *State {
@@ -173,14 +186,15 @@ func (m *Matcher) Matches(r rune) bool {
 }
 
 type Group struct {
-	States  [][]Stateish // []Stateish OR []Stateish OR …
-	Min     int          // min matches
-	Max     int          // max matches or -1 for many
-	Capture bool
-	Greedy  bool
+	States   [][]Stateish // []Stateish OR []Stateish OR …
+	Min      int          // min matches
+	Max      int          // max matches or -1 for many
+	Capture  bool
+	Greedy   bool
+	Implicit bool // we can't close implicit groups with '('
 
 	// parser flags
-	closed bool
+	Closed bool
 }
 
 func (g *Group) AppendGroup(min int, max int, greedy bool) {

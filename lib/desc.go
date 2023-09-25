@@ -36,8 +36,20 @@ func NegIsInfinite(i int) string {
 	return fmt.Sprintf("%d", i)
 }
 
+func Qstr(min int, max int, greedy bool) string {
+	if min != max {
+		qstr := fmt.Sprintf("{%d,%s}", min, NegIsInfinite(max))
+		if !greedy {
+			qstr += "?"
+		}
+		return qstr
+	}
+	return fmt.Sprintf("{%d}", min)
+}
+
 func (g *Group) Describe(indent int) string {
 	istr := strings.Repeat(INDENT, indent)
+	jstr := istr + INDENT
 	var ret []string
 	for _, orItem := range g.States {
 		var orStr []string
@@ -46,11 +58,14 @@ func (g *Group) Describe(indent int) string {
 		}
 		ret = append(ret, strings.Join(orStr, "\n"))
 	}
-	ghead := fmt.Sprintf("%s<Group capture=%v greedy=%v min=%d max=%s>",
-		istr, g.Capture, g.Greedy, g.Min, NegIsInfinite(g.Max))
-	gstr := strings.Join(ret, fmt.Sprintf("\n%s<or/>\n", istr+INDENT))
-	gfoot := fmt.Sprintf("%s</Group>", istr)
-	return strings.Join([]string{ghead, gstr, gfoot}, "\n")
+	qstr := Qstr(g.Min, g.Max, g.Greedy)
+	if g.Capture {
+		qstr += ":cap"
+	}
+	return fmt.Sprintf("%sG%s => {\n%s\n%s}\n",
+		istr, qstr,
+		strings.Join(ret, fmt.Sprintf("\n%s|\n", jstr)),
+		istr)
 }
 
 func (n *NFA) Describe(indent int) string {
@@ -65,11 +80,11 @@ func (m *Matcher) Describe() string {
 	if m.Any {
 		if m.Inverse {
 			// the parser shouldn't actually produce this ... right?
-			return "M[«none»]"
+			return "[«nil»]"
 		}
-		return "M[«any»]"
+		return "[«any»]"
 	}
-	var ret string = "M["
+	var ret string = "["
 	if m.Inverse {
 		ret += "^"
 	}
@@ -89,13 +104,11 @@ func (s *State) Describe(indent int) string {
 	}
 	var junk string
 	if s.And {
-		junk = " and "
+		junk = " && "
 	} else {
-		junk = " or "
+		junk = " || "
 	}
-	shead := fmt.Sprintf("%s<State greedy=%v min=%d max=%s and=%v>",
-		istr, s.Greedy, s.Min, NegIsInfinite(s.Max), s.And)
 	sstr := strings.Join(ret, junk)
-	sfoot := "</State>"
-	return strings.Join([]string{shead, sstr, sfoot}, " ")
+	qstr := Qstr(s.Min, s.Max, s.Greedy)
+	return fmt.Sprintf("%sS%s => %s", istr, qstr, sstr)
 }
