@@ -9,6 +9,16 @@ import (
 const INDENT string = "  "
 
 func Printableize(r rune) string {
+	switch r {
+	case '\t':
+		return `\t`
+	case '\r':
+		return `\r`
+	case '\n':
+		return `\n`
+	case ' ':
+		return `«space»`
+	}
 	if unicode.IsPrint(r) {
 		return fmt.Sprintf("%c", r)
 	}
@@ -38,7 +48,7 @@ func (g *Group) Describe(indent int) string {
 	}
 	ghead := fmt.Sprintf("%s<Group capture=%v greedy=%v min=%d max=%s>",
 		istr, g.Capture, g.Greedy, g.Min, NegIsInfinite(g.Max))
-	gstr := strings.Join(ret, fmt.Sprintf("\n%s||\n", istr))
+	gstr := strings.Join(ret, fmt.Sprintf("\n%sor\n", istr))
 	gfoot := fmt.Sprintf("%s</Group>", istr)
 	return strings.Join([]string{ghead, gstr, gfoot}, "\n")
 }
@@ -51,7 +61,7 @@ func (n *NFA) Describe(indent int) string {
 	return strings.Join(ret, "\n")
 }
 
-func (m *Matcher) describe() string {
+func (m *Matcher) Describe() string {
 	if m.Any {
 		if m.Inverse {
 			// the parser shouldn't actually produce this ... right?
@@ -75,13 +85,13 @@ func (s *State) Describe(indent int) string {
 	istr := strings.Repeat(INDENT, indent)
 	ret := []string{}
 	for _, m := range s.Match {
-		ret = append(ret, m.describe())
+		ret = append(ret, m.Describe())
 	}
 	var junk string
 	if s.And {
-		junk = " && "
+		junk = " and "
 	} else {
-		junk = " || "
+		junk = " or "
 	}
 	shead := fmt.Sprintf("%s<State greedy=%v min=%d max=%s and=%v>",
 		istr, s.Greedy, s.Min, NegIsInfinite(s.Max), s.And)
