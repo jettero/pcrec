@@ -50,6 +50,21 @@ func (n *NFA) LastStateish() Stateish {
 	return n.States[ls].LastStateish()
 }
 
+func (n *NFA) AppendOrToGroupOrCreateGroup() {
+	// you are here:
+	// aba|
+	// (a|b|
+	if lg := n.LastOpenGroup(); lg != nil {
+		lg.AppendOrClause()
+	} else if ls := n.LastStateish(); ls == nil {
+		// if the top level reg is a group, it's not a greedy one
+		n.States = append(n.States, &Group{Min: 1, Max: 1, Greedy: false})
+
+	} else {
+		n.States = []Stateish{&Group{Min: 1, Max: 1, Greedy: false, States: [][]Stateish{n.States}}}
+	}
+}
+
 func (s *State) LastStateish() Stateish {
 	return s
 }
@@ -173,6 +188,10 @@ func (g *Group) AppendGroup(min int, max int, greedy bool) {
 	} else {
 		g.States = append(g.States, []Stateish{&Group{Min: min, Max: max, Greedy: greedy}})
 	}
+}
+
+func (g *Group) AppendOrClause() {
+	g.States = append(g.States, []Stateish{})
 }
 
 func (g *Group) AppendState(min int, max int, greedy bool) *State {

@@ -48,7 +48,7 @@ func (g *Group) Describe(indent int) string {
 	}
 	ghead := fmt.Sprintf("%s<Group capture=%v greedy=%v min=%d max=%s>",
 		istr, g.Capture, g.Greedy, g.Min, NegIsInfinite(g.Max))
-	gstr := strings.Join(ret, fmt.Sprintf("\n%sor\n", istr))
+	gstr := strings.Join(ret, fmt.Sprintf("\n%s<or/>\n", istr+INDENT))
 	gfoot := fmt.Sprintf("%s</Group>", istr)
 	return strings.Join([]string{ghead, gstr, gfoot}, "\n")
 }

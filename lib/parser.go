@@ -247,6 +247,8 @@ func (p *Parser) Parse(pat []rune) (*NFA, error) {
 				if err := p.Top(SUB_REP).CloseGroup(); err != nil {
 					return p.formatError("unmatched closing parenthesis")
 				}
+			case '|':
+				p.Top(SUB_INIT).AppendOrToGroupOrCreateGroup()
 			case '\\':
 				p.PushContext(CTX_SLASHED)
 			case '{':
