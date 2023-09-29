@@ -18,7 +18,7 @@ func ProcessArgs() []string {
 	pflag.Parse()
 
 	if *halp {
-		b := bytes.NewBufferString("\nUSAGE: pcrec [--options] [pattern [pattern …]]\n")
+		b := bytes.NewBufferString("\nUSAGE: pcrec-expr [--options] [pattern [pattern …]]\n")
 		pflag.CommandLine.SetOutput(b)
 		pflag.PrintDefaults()
 		fmt.Println(b.String())
@@ -38,7 +38,7 @@ func ProcessArgs() []string {
 
 func main() {
 	for _, arg := range ProcessArgs() {
-		nfa, err := pcrec.ParseString(arg)
+		nfa, err := pcrec.Parse(arg)
 
 		fmt.Printf("\nNFA Description for \"%s\":\n", arg)
 		if lib.TruthyEnv("PCREC_PP_NFA") {

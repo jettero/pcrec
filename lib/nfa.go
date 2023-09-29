@@ -14,6 +14,10 @@ type Stateish interface {
 	LastStateish() Stateish
 	LastOpenGroup() *Group
 	Describe(indent int) string
+
+	// NOTE: (m *Matcher) Matches(r rune) bool is mainly used for extending
+	// Matcher ranges…  it is not used by the RE search engine to actually
+	// match in strings.
 }
 
 func (n *NFA) SetQty(min int, max int) {

@@ -2,10 +2,14 @@ package pcrec
 
 import "github.com/jettero/pcrec/lib"
 
-func Parse(pat []rune) (*lib.NFA, error) {
-	return lib.Parse(pat)
+func Parse(pat string) (*lib.NFA, error) {
+	return lib.Parse([]rune(pat))
 }
 
-func ParseString(pat string) (*lib.NFA, error) {
-	return Parse([]rune(pat))
+func Search(pat string, candidate string) (*lib.REsult, error) {
+	if n, err := Parse(candidate); err != nil {
+		return nil, err
+	} else {
+		return n.SearchRunes([]rune(candidate)), nil
+	}
 }
