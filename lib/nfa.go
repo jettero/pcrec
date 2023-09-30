@@ -14,10 +14,6 @@ type Stateish interface {
 	LastStateish() Stateish
 	LastOpenGroup() *Group
 	Describe(indent int) string
-
-	// NOTE: (m *Matcher) Matches(r rune) bool is mainly used for extending
-	// Matcher ranges…  it is not used by the RE search engine to actually
-	// match in strings.
 }
 
 func (n *NFA) SetQty(min int, max int) {
@@ -182,13 +178,6 @@ type Matcher struct {
 	Last    rune
 }
 
-func (m *Matcher) Matches(r rune) bool {
-	if m.Any {
-		return true
-	}
-	return m.Inverse != (m.First <= r && r <= m.Last) // inverse ^ between
-}
-
 type Group struct {
 	States   [][]Stateish // []Stateish OR []Stateish OR …
 	Min      int          // min matches
@@ -229,15 +218,6 @@ type State struct {
 	Max    int        // max matches or -1 for many
 	And    bool       // a&b&c, useful for: [^abc] => (^a&^b&^c) ≡ ^(a|b|c)
 	Greedy bool
-}
-
-func (s *State) Matches(r rune) bool {
-	for _, m := range s.Match {
-		if m.Matches(r) {
-			return true
-		}
-	}
-	return false
 }
 
 func (s *State) AppendDotMatch() {
