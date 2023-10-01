@@ -62,7 +62,7 @@ func TestCompile(t *testing.T) {
 	populateShouldCompile()
 	for _, pat := range shouldCompile {
 		t.Run(fmt.Sprintf("pat=`%s`", pat), func(t *testing.T) {
-			_, err := pcrec.ParseString(pat)
+			_, err := pcrec.Parse(pat)
 			if err != nil {
 				t.Error(fmt.Sprintf("`%s` should compile but did not:\n%s", pat, err))
 			}
@@ -73,7 +73,7 @@ func TestCompile(t *testing.T) {
 func TestNotCompile(t *testing.T) {
 	for _, pat := range shouldNotCompile {
 		t.Run(fmt.Sprintf("pat=`%s`", pat), func(t *testing.T) {
-			_, err := pcrec.ParseString(pat)
+			_, err := pcrec.Parse(pat)
 			if err == nil {
 				t.Error(fmt.Sprintf("`%s` should not compile but did", pat))
 			}

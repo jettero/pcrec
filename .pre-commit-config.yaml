@@ -16,8 +16,6 @@ repos:
   - id: go-imports
   - id: go-mod-tidy
   - id: validate-toml
-  - id: go-unit-tests
-    include: ^pcrec
   # id: go-lint
   # id: go-critic
   # id: go-vet
@@ -27,6 +25,10 @@ repos:
   # id: golangci-lint
   # id: go-build
 
+  # this doesn't work cuz it won't accept exclude/include/files.  so I'll just
+  # write my own (bottom)
+  # id: go-unit-tests
+
 - repo: local
   hooks:
   - id: wtf
@@ -34,3 +36,10 @@ repos:
     entry: '\b(?i:wtf)\b'
     types: [ go ]
     language: pygrep
+
+  - id: test
+    name: test
+    pass_filenames: false
+    entry: go test -failfast
+    types: [go]
+    language: system
