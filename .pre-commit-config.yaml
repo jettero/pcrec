@@ -17,6 +17,7 @@ repos:
   - id: go-mod-tidy
   - id: validate-toml
   - id: go-unit-tests
+    exclude: '(cruft|cmd)'
   # id: go-lint
   # id: go-critic
   # id: go-vet
