@@ -62,7 +62,7 @@ func (g *Group) Describe(indent int) string {
 	if g.Capture {
 		qstr += ":cap"
 	}
-	return fmt.Sprintf("%sG%s => {\n%s\n%s}\n",
+	return fmt.Sprintf("%sG%s => {\n%s\n%s}",
 		istr, qstr,
 		strings.Join(ret, fmt.Sprintf("\n%s|\n", jstr)),
 		istr)

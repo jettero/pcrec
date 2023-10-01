@@ -4,24 +4,19 @@ import (
 	"fmt"
 )
 
-type NFA struct {
-	States []Stateish
-}
-
-type Stateish interface {
-	SetQty(min, max int)
-	SetGreedy(f bool)
-	LastStateish() Stateish
-	LastOpenGroup() *Group
-	Describe(indent int) string
-}
-
 func (n *NFA) SetQty(min int, max int) {
 	n.LastStateish().SetQty(min, max)
 }
 
 func (n *NFA) SetGreedy(f bool) {
 	n.LastStateish().SetGreedy(f)
+}
+
+func (n *NFA) SetCapture(f bool) {
+	switch typed := n.LastStateish().(type) {
+	case *Group:
+		typed.SetCapture(f)
+	}
 }
 
 func (s *State) SetQty(min, max int) {
@@ -40,6 +35,10 @@ func (g *Group) SetQty(min, max int) {
 
 func (g *Group) SetGreedy(f bool) {
 	g.Greedy = f
+}
+
+func (g *Group) SetCapture(f bool) {
+	g.Capture = f
 }
 
 func (n *NFA) LastStateish() Stateish {
@@ -65,7 +64,8 @@ func (n *NFA) AppendOrToGroupOrCreateGroup() bool {
 	// There's really no need to check anything further wrt that. Just replace
 	// the top level states with the open group.
 
-	g := &Group{Implicit: true, Min: 1, Max: 1, States: [][]Stateish{n.States}}
+	g := &Group{States: [][]Stateish{n.States, {}},
+		Min: 1, Max: 1, Capture: false, Greedy: true, Implicit: true}
 	n.States = []Stateish{g}
 
 	return true
@@ -118,9 +118,9 @@ func (n *NFA) LastOpenGroup() *Group {
 
 func (n *NFA) AppendGroup() {
 	if lg := n.LastOpenGroup(); lg != nil {
-		lg.AppendGroup(1, 1, true)
+		lg.AppendGroup(1, 1, true, true)
 	} else {
-		n.States = append(n.States, &Group{Min: 1, Max: 1, Greedy: true})
+		n.States = append(n.States, &Group{Min: 1, Max: 1, Greedy: true, Capture: true})
 	}
 }
 
@@ -171,30 +171,11 @@ func (n *NFA) AppendDotState() *State {
 	return s
 }
 
-type Matcher struct {
-	Inverse bool
-	Any     bool
-	First   rune
-	Last    rune
-}
-
-type Group struct {
-	States   [][]Stateish // []Stateish OR []Stateish OR …
-	Min      int          // min matches
-	Max      int          // max matches or -1 for many
-	Capture  bool
-	Greedy   bool
-	Implicit bool // we can't close implicit groups with '('
-
-	// parser flags
-	Closed bool
-}
-
-func (g *Group) AppendGroup(min int, max int, greedy bool) {
+func (g *Group) AppendGroup(min int, max int, greedy bool, capture bool) {
 	if i := len(g.States) - 1; i >= 0 {
-		g.States[i] = append(g.States[i], &Group{Min: min, Max: max, Greedy: greedy})
+		g.States[i] = append(g.States[i], &Group{Min: min, Max: max, Greedy: greedy, Capture: capture})
 	} else {
-		g.States = append(g.States, []Stateish{&Group{Min: min, Max: max, Greedy: greedy}})
+		g.States = append(g.States, []Stateish{&Group{Min: min, Max: max, Greedy: greedy, Capture: capture}})
 	}
 }
 
@@ -210,14 +191,6 @@ func (g *Group) AppendState(min int, max int, greedy bool) *State {
 		g.States = append(g.States, []Stateish{ret})
 	}
 	return ret
-}
-
-type State struct {
-	Match  []*Matcher // items in an 'or' group (e.g. a|b|c)
-	Min    int        // min matches
-	Max    int        // max matches or -1 for many
-	And    bool       // a&b&c, useful for: [^abc] => (^a&^b&^c) ≡ ^(a|b|c)
-	Greedy bool
 }
 
 func (s *State) AppendDotMatch() {

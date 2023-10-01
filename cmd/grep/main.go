@@ -53,6 +53,10 @@ func main() {
 		return
 	}
 
+	if lib.TruthyEnv("PCREC_TRACE") {
+		fmt.Print("---=: NFA:\n", nfa.Describe(1), "\n")
+	}
+
 	for _, fname := range args {
 		var fh *bufio.Reader
 		if fname == "-" {
