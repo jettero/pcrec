@@ -31,6 +31,8 @@ func (g *Group) SearchRunes(res *REsult, candidate []rune) (adj int, ok bool) {
 	for _, sl := range g.States {
 		ok = true // assume this whole chain is true
 		if g.Capture {
+			// we don't know what the capture actualy is yet, but we make room
+			// for it at the position of the group
 			res.Groups = append(res.Groups, "")
 			cidx = len(res.Groups) - 1
 		}
@@ -44,13 +46,14 @@ func (g *Group) SearchRunes(res *REsult, candidate []rune) (adj int, ok bool) {
 		}
 		if ok { // seems that whole chain matched
 			if g.Capture {
+				// replace the empty string we put in the REsult (above)
 				res.Groups[cidx] = string(candidate[:adj])
 			}
 			return // adj,true
 		}
 		adj = 0 // backtrack
 		if g.Capture {
-			// remove our capture item if applicable
+			// well, we made room, but never matched, so we have to come back out
 			res.Groups = append(res.Groups[:cidx], res.Groups[cidx+1:]...)
 		}
 	}
