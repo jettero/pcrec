@@ -4,11 +4,12 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
+	"io"
+	"os"
+
 	"github.com/jettero/pcrec"
 	"github.com/jettero/pcrec/lib"
 	"github.com/spf13/pflag"
-	"io"
-	"os"
 )
 
 func ProcessArgs() []string {

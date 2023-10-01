@@ -2,8 +2,9 @@ package pcrec_test
 
 import (
 	"fmt"
-	"github.com/jettero/pcrec"
 	"testing"
+
+	"github.com/jettero/pcrec"
 )
 
 var shouldCompile = []string{

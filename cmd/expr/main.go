@@ -3,11 +3,12 @@ package main
 import (
 	"bytes"
 	"fmt"
+	"os"
+
 	"github.com/jettero/pcrec"
 	"github.com/jettero/pcrec/lib"
 	"github.com/k0kubun/pp/v3"
 	"github.com/spf13/pflag"
-	"os"
 )
 
 func ProcessArgs() []string {
