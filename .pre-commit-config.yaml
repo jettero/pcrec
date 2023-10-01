@@ -15,15 +15,15 @@ repos:
     args: [ "-s" ]
   - id: go-imports
   - id: go-mod-tidy
-  # id: go-vet
+  - id: validate-toml
+  - id: go-unit-tests
   # id: go-lint
+  # id: go-critic
+  # id: go-vet
   # id: go-cyclo
   # args: [-over=15]
-  # id: validate-toml
   # id: no-go-testing
   # id: golangci-lint
-  # id: go-critic
-  # id: go-unit-tests
   # id: go-build
 
 - repo: local
