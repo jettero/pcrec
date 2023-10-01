@@ -24,9 +24,6 @@ repos:
   # id: no-go-testing
   # id: golangci-lint
   # id: go-build
-
-  # this doesn't work cuz it won't accept exclude/include/files.  so I'll just
-  # write my own (bottom)
   # id: go-unit-tests
 
 - repo: local
@@ -37,6 +34,8 @@ repos:
     types: [ go ]
     language: pygrep
 
+  # I didn't use go-unit-tests cuz I don't want to test curft/ and cmd/ and
+  # exlucde doesn't work if you're using ./... in the test command
   - id: test
     name: test
     pass_filenames: false
