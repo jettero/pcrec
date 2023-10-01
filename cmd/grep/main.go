@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"github.com/jettero/pcrec"
 	"github.com/jettero/pcrec/lib"
-	"github.com/k0kubun/pp/v3"
 	"github.com/spf13/pflag"
 	"io"
 	"os"
@@ -81,8 +80,8 @@ func main() {
 			if lib.TruthyEnv("PCREC_PP_RES") {
 				fmt.Print("---=: line: ", line)
 				res := nfa.Search(line)
-				pp.Println(res)
-				fmt.Println("")
+				fmt.Print(res.Describe(1))
+				fmt.Println("\n")
 			} else {
 				if res := nfa.Search(line); res.Matched {
 					fmt.Print(line)

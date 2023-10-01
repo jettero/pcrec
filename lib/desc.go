@@ -112,3 +112,21 @@ func (s *State) Describe(indent int) string {
 	qstr := Qstr(s.Min, s.Max, s.Greedy)
 	return fmt.Sprintf("%sS%s => %s", istr, qstr, sstr)
 }
+
+func (r *REsult) Describe(indent int) string {
+	istr := strings.Repeat(INDENT, indent)
+	jstr := istr + INDENT
+
+	ret := fmt.Sprintf("%sREsult[matched:%v]", istr, r.Matched)
+	if len(r.Groups) > 0 {
+		for i, item := range r.Groups {
+			var sitem string = "nil"
+			if item != nil {
+				sitem = fmt.Sprintf("\"%s\"", string(*item))
+			}
+			ret += fmt.Sprintf("\n%sGroup(%d): %v", jstr, i+1, sitem)
+		}
+	}
+
+	return ret + "\n"
+}

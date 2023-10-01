@@ -1,7 +1,7 @@
 package lib
 
 type REsult struct { // <--- I think this is hilarious, sorry
-	Groups  []string
+	Groups  []*[]rune
 	Matched bool
 }
 
@@ -28,14 +28,14 @@ func (n *NFA) SearchRunes(candidate []rune) (res *REsult) {
 func (g *Group) SearchRunes(res *REsult, candidate []rune) (adj int, ok bool) {
 	/// g.States[0][∀] || g.States[1][∀] || …
 	var cidx int
+	if g.Capture {
+		// we don't know what the capture actualy is yet, but we make room
+		// for it at the position of the group
+		res.Groups = append(res.Groups, nil)
+		cidx = len(res.Groups) - 1
+	}
 	for _, sl := range g.States {
 		ok = true // assume this whole chain is true
-		if g.Capture {
-			// we don't know what the capture actualy is yet, but we make room
-			// for it at the position of the group
-			res.Groups = append(res.Groups, "")
-			cidx = len(res.Groups) - 1
-		}
 		for _, s := range sl {
 			if adj_, ok_ := s.SearchRunes(res, candidate[adj:]); ok_ {
 				adj += adj_
@@ -47,15 +47,14 @@ func (g *Group) SearchRunes(res *REsult, candidate []rune) (adj int, ok bool) {
 		if ok { // seems that whole chain matched
 			if g.Capture {
 				// replace the empty string we put in the REsult (above)
-				res.Groups[cidx] = string(candidate[:adj])
+				matched := candidate[:adj]
+				res.Groups[cidx] = &matched
 			}
 			return // adj,true
 		}
 		adj = 0 // backtrack
-		if g.Capture {
-			// well, we made room, but never matched, so we have to come back out
-			res.Groups = append(res.Groups[:cidx], res.Groups[cidx+1:]...)
-		}
+		// oddly, if the group didn't match, we still leave the empty capture
+		// result in the REsult
 	}
 	return // 0,false
 }
