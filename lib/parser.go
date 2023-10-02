@@ -256,7 +256,7 @@ func (p *Parser) Parse(pat []rune) (*NFA, error) {
 	p.top = &NFA{}
 	p.pat = pat
 
-	p.Printf("----------------------=: Parse(%+v) :=-----------------------\n", pat)
+	p.Printf("----------------------=: Parse(%s) :=-----------------------\n", string(pat))
 
 	for p.Seek(0); p.i < len(p.pat); p.Consume(1) {
 		p.Printf(" -- p.pat[%d]: '%c'; |p.mode|: %d; p.mn: %d.%d\n", p.i, p.r, len(p.mode), p.m, p.n)
