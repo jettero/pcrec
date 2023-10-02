@@ -162,9 +162,7 @@ func (p *Parser) subParseInt64(subpat []rune, bitSize int) (int64, error) {
 	return strconv.ParseInt(string(nreg), bitSize, 0)
 }
 
-// GrokSlashed() => (runes, inversed, error)
-func (p *Parser) GrokSlashed() ([]rune, bool, error) {
-	var ret []rune
+func (p *Parser) GrokSlashed() (ret []rune, inverse bool, rerr error) {
 	var old_i int = p.i
 	switch p.r {
 	case 'x':
@@ -172,48 +170,66 @@ func (p *Parser) GrokSlashed() ([]rune, bool, error) {
 		if num, err := p.subParseInt64(p.pat[p.i:len(p.pat)], 16); err == nil {
 			ret = append(ret, rune(num))
 			p.Printf("  GrokSlashed(hex) => %+v\n", ret)
-			return ret, false, nil
 		} else {
-			return nil, false, err
+			rerr = err
 		}
 	case '0', '1', '2', '3', '4', '5', '6', '7', '8', '9':
 		if num, err := p.subParseInt64(p.pat[p.i:len(p.pat)], 8); err == nil {
 			ret = append(ret, rune(num))
 			p.Printf("  GrokSlashed(oct) => %+v\n", ret)
-			return ret, false, nil
 		} else {
 			p.Seek(old_i)
-			return nil, false, err
+			rerr = err
 		}
 	case 'g', 'a':
 		ret = append(ret, '\a')
 		p.Printf("  GrokSlashed(\\a) => %+v\n", ret)
-		return ret, false, nil
 	case 't':
 		ret = append(ret, '\t')
 		p.Printf("  GrokSlashed(\\t) => %+v\n", ret)
-		return ret, false, nil
 	case 'r':
 		ret = append(ret, '\r')
 		p.Printf("  GrokSlashed(\\r) => %+v\n", ret)
-		return ret, false, nil
 	case 'n':
 		ret = append(ret, '\n')
 		p.Printf("  GrokSlashed(\\n) => %+v\n", ret)
-		return ret, false, nil
+	case 'W':
+		inverse = true
+		p.Printf("  GrokSlashed(\\W) => !")
+		fallthrough
+	case 'w':
+		for i := 'a'; i <= 'z'; i++ {
+			ret = append(ret, i)
+		}
+		for i := 'A'; i <= 'Z'; i++ {
+			ret = append(ret, i)
+		}
+		for i := '0'; i <= '9'; i++ {
+			ret = append(ret, i)
+		}
+		ret = append(ret, '_')
+		p.Printf("  GrokSlashed(\\w) => %+v\n", ret)
+	case 'D':
+		inverse = true
+		p.Printf("  GrokSlashed(\\D) => !")
+		fallthrough
+	case 'd':
+		for i := '0'; i <= '9'; i++ {
+			ret = append(ret, i)
+		}
+		p.Printf("  GrokSlashed(\\d) => %+v\n", ret)
+	case 'S':
+		inverse = true
+		p.Printf("  GrokSlashed(\\S) => !")
+		fallthrough
 	case 's':
 		ret = append(ret, ' ', '\t', '\n', '\r')
 		p.Printf("  GrokSlashed(\\s) => %+v\n", ret)
-		return ret, false, nil
-	case 'S':
-		ret = append(ret, ' ', '\t', '\n', '\r')
-		p.Printf("  GrokSlashed(\\S) => !%+v\n", ret)
-		return ret, true, nil
 	default:
 		ret := []rune{p.r}
 		p.Printf("  GrokSlashed(??) => %+v\n", ret)
-		return ret, false, nil
 	}
+	return
 }
 
 func (p *Parser) Seek(i int) {
