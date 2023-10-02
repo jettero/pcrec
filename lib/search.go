@@ -10,18 +10,19 @@ func (n *NFA) Search(candidate string) (ret *REsult) {
 }
 
 func (n *NFA) SearchRunes(candidate []rune) (res *REsult) {
-	res = &REsult{}
-
-	// States[0] && States[1] && …
-	for cpos, npos := 0, 0; cpos < len(candidate) && npos < len(n.States); npos++ {
-		if adj, ok := n.States[npos].SearchRunes(res, candidate[cpos:]); ok {
-			cpos += adj
-		} else {
-			return // if any of these are false, matching has failed
+	for cpos := 0; cpos < len(candidate); cpos++ {
+		mpos := cpos
+		res = &REsult{} // have to reset this on each loop in case we started collecting groups
+		for npos, sta := range n.States {
+			if adj, ok := sta.SearchRunes(res, candidate[mpos:]); ok {
+				if npos == len(n.States)-1 {
+					res.Matched = true
+					return
+				}
+				mpos += adj
+			}
 		}
 	}
-
-	res.Matched = true
 	return
 }
 
