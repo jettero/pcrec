@@ -95,6 +95,13 @@ func sp(s string) *string {
 // I should find a way to read tese from a csv or yaml or something
 var LMT []LineMatchThing = []LineMatchThing{
 	{"Testacular test blarg19 s3v3n.", "test", true, []*string{}},
+	{"Testacular test blarg19 s3v3n.", `t(..)t`, true, []*string{sp("es")}},
+	{"Testacular test blarg19 s3v3n.", `t(.*)t`, true, []*string{sp("acular tes")}},
+	{"Testacular test blarg19 s3v3n.", `t(.+)t`, true, []*string{sp("acular tes")}},
+	{"Testacular test blarg19 s3v3n.", `t(\S*)t`, true, []*string{sp("es")}},
+	{"Testacular test blarg19 s3v3n.", `t(\S+)t`, true, []*string{sp("es")}},
+	{"Testacular test blarg19 s3v3n.", `t(.*?)t`, true, []*string{sp("acular tes")}},
+	{"Testacular test blarg19 s3v3n.", `t(.+?)t`, true, []*string{sp("acular tes")}},
 	{"Testacular test blarg19 s3v3n.", "(test)", true, []*string{sp("test")}},
 	{"Testacular test blarg19 s3v3n.", "(t(xx|es)t)", true, []*string{sp("test"), sp("es")}},
 	{"Testacular test blarg19 s3v3n.", "(t(xx)t|t(es)t)", true, []*string{sp("test"), nil, sp("es")}},
@@ -102,6 +109,7 @@ var LMT []LineMatchThing = []LineMatchThing{
 	{"Testacular test blarg19 s3v3n.", `(\w+)`, true, []*string{sp("test")}},
 	{"Testacular test blarg19 s3v3n.", `(\D+)`, true, []*string{sp("test")}},
 	{"Testacular test blarg19 s3v3n.", `(\w+)(\d+)`, true, []*string{sp("test"), sp("19")}},
+	{"Testacular test blarg19 s3v3n.", `.*est.*est.*(3v3)`, true, []*string{sp("3v3")}},
 }
 
 func TestLineMatchThings(t *testing.T) {

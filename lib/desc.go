@@ -8,7 +8,19 @@ import (
 
 const INDENT string = "  "
 
-func Printableize(r rune) string {
+func PrintableizeRunes(rz []rune, max int) string {
+	var ret []string
+	for i, r := range rz {
+		if max > 0 && i >= max {
+			ret = append(ret, " …")
+			break
+		}
+		ret = append(ret, Printableize(r, false))
+	}
+	return strings.Join(ret, "")
+}
+
+func Printableize(r rune, loudWhitespace bool) string {
 	switch r {
 	case '\t':
 		return `\t`
@@ -16,8 +28,13 @@ func Printableize(r rune) string {
 		return `\r`
 	case '\n':
 		return `\n`
+	case '"':
+		return "\\\""
 	case ' ':
-		return `«space»`
+		if loudWhitespace {
+			return `«space»`
+		}
+		return " "
 	}
 	if unicode.IsPrint(r) {
 		return fmt.Sprintf("%c", r)
@@ -88,9 +105,9 @@ func (m *Matcher) Describe() string {
 	if m.Inverse {
 		ret += "^"
 	}
-	ret += Printableize(m.First)
+	ret += Printableize(m.First, true)
 	if m.First < m.Last {
-		ret += "-" + Printableize(m.Last)
+		ret += "-" + Printableize(m.Last, true)
 	}
 	ret += "]"
 	return ret

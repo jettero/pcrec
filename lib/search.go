@@ -1,5 +1,7 @@
 package lib
 
+import "fmt"
+
 type REsult struct { // <--- I think this is hilarious, sorry
 	Groups  []*[]rune
 	Matched bool
@@ -9,20 +11,35 @@ func (n *NFA) Search(candidate string) (ret *REsult) {
 	return n.SearchRunes([]rune(candidate))
 }
 
+var searchTrace bool
+
 func (n *NFA) SearchRunes(candidate []rune) (res *REsult) {
+	searchTrace = TruthyEnv("PCREC_TRACE") || TruthyEnv("RE_SEARCH_TRACE")
+	res = &REsult{}
+
+	if searchTrace {
+		fmt.Printf("---=: SearchRunes(\"%s\")\n", PrintableizeRunes(candidate, 0))
+	}
+
+outer:
 	for cpos := 0; cpos < len(candidate); cpos++ {
 		mpos := cpos
-		res = &REsult{} // have to reset this on each loop in case we started collecting groups
-		for npos, sta := range n.States {
+		res.Groups = res.Groups[:0]
+		if searchTrace {
+			fmt.Printf("  -- candidate[%d:]=\"%s\"\n", cpos, PrintableizeRunes(candidate[cpos:], 20))
+		}
+		for _, sta := range n.States {
 			if adj, ok := sta.SearchRunes(res, candidate[mpos:]); ok {
-				if npos == len(n.States)-1 {
-					res.Matched = true
-					return
-				}
 				mpos += adj
+			} else {
+				continue outer // match states in order or longjump to the outer loop
 			}
 		}
+		res.Matched = true // if the States loop finishes, then we matched
+		return             // so we only continue from the inner loop
 	}
+
+	res.Matched = false // this is implied, but spelled out because it looks cool
 	return
 }
 
@@ -60,14 +77,22 @@ func (g *Group) SearchRunes(res *REsult, candidate []rune) (adj int, ok bool) {
 	return // 0,false
 }
 
-func (s *State) SearchRunes(res *REsult, candidate []rune) (int, bool) {
-	if len(candidate) < 1 {
-		return 0, false
+func (s *State) SearchRunes(res *REsult, candidate []rune) (adj int, ok bool) {
+	var max int = len(candidate)
+	if s.Max >= 0 && s.Max < max {
+		max = s.Max
 	}
-	if s.Matches(candidate[0]) {
-		return 1, true
+	for adj = 0; adj < max; adj++ {
+		if s.Matches(candidate[adj]) {
+			ok = true
+		} else if adj < s.Min {
+			ok = false
+			break
+		} else {
+			break
+		}
 	}
-	return 0, false
+	return
 }
 
 func (m *Matcher) Matches(r rune) bool {
@@ -79,9 +104,18 @@ func (m *Matcher) Matches(r rune) bool {
 
 func (s *State) Matches(r rune) bool {
 	for _, m := range s.Match {
+		if searchTrace {
+			fmt.Printf("    -- %s", s.Describe(0))
+		}
 		if m.Matches(r) {
+			if searchTrace {
+				fmt.Printf(" => matched(%s)\n", Printableize(r, true))
+			}
 			return true
 		}
+	}
+	if searchTrace {
+		fmt.Printf(" => fail(%s)\n", Printableize(r, true))
 	}
 	return false
 }
