@@ -10,7 +10,7 @@ type Stateish interface {
 	LastStateish() Stateish
 	LastOpenGroup() *Group
 	Describe(indent int) string
-	SearchRunes(res *REsult, candidate []rune) (int, bool)
+	SearchRunes(res *REsult, candidate []rune) (int, int, bool)
 }
 
 type State struct {

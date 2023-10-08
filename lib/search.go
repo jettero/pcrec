@@ -16,6 +16,7 @@ var searchTrace bool
 func (n *NFA) SearchRunes(candidate []rune) (res *REsult) {
 	searchTrace = TruthyEnv("PCREC_TRACE") || TruthyEnv("RE_SEARCH_TRACE")
 	res = &REsult{}
+	bak := 0
 
 	if searchTrace {
 		fmt.Printf("---=: SearchRunes(\"%s\")\n", PrintableizeRunes(candidate, 0))
@@ -29,21 +30,31 @@ outer:
 			fmt.Printf("  -- candidate[%d:]=\"%s\"\n", cpos, PrintableizeRunes(candidate[cpos:], 20))
 		}
 		for _, sta := range n.States {
-			if adj, ok := sta.SearchRunes(res, candidate[mpos:]); ok {
+			if adj, b, ok := sta.SearchRunes(res, candidate[mpos:]); ok {
 				mpos += adj
+				bak = b
 			} else {
 				continue outer // match states in order or longjump to the outer loop
 			}
 		}
+		if searchTrace {
+			fmt.Printf("  -- MATCHED\n")
+		}
 		res.Matched = true // if the States loop finishes, then we matched
 		return             // so we only continue from the inner loop
 	}
-
+	if searchTrace {
+		if bak > 0 {
+			fmt.Printf("  -- nomatch (TODO: backup 1-%d)\n", bak)
+		} else {
+			fmt.Printf("  -- nomatch\n")
+		}
+	}
 	res.Matched = false // this is implied, but spelled out because it looks cool
 	return
 }
 
-func (g *Group) SearchRunes(res *REsult, candidate []rune) (adj int, ok bool) {
+func (g *Group) SearchRunes(res *REsult, candidate []rune) (adj int, bak int, ok bool) {
 	/// g.States[0][∀] || g.States[1][∀] || …
 	var cidx int
 	if g.Capture {
@@ -55,8 +66,9 @@ func (g *Group) SearchRunes(res *REsult, candidate []rune) (adj int, ok bool) {
 	for _, sl := range g.States {
 		ok = true // assume this whole chain is true
 		for _, s := range sl {
-			if adj_, ok_ := s.SearchRunes(res, candidate[adj:]); ok_ {
-				adj += adj_
+			if a, b, o := s.SearchRunes(res, candidate[adj:]); o {
+				adj += a
+				bak += b
 			} else {
 				ok = false // until we learn it's not true
 				break
@@ -77,7 +89,7 @@ func (g *Group) SearchRunes(res *REsult, candidate []rune) (adj int, ok bool) {
 	return // 0,false
 }
 
-func (s *State) SearchRunes(res *REsult, candidate []rune) (adj int, ok bool) {
+func (s *State) SearchRunes(res *REsult, candidate []rune) (adj int, bak int, ok bool) {
 	var max int = len(candidate)
 	if s.Max >= 0 && s.Max < max {
 		max = s.Max
@@ -85,6 +97,9 @@ func (s *State) SearchRunes(res *REsult, candidate []rune) (adj int, ok bool) {
 	for adj = 0; adj < max; adj++ {
 		if s.Matches(candidate[adj]) {
 			ok = true
+			if adj > s.Min {
+				bak = adj - s.Min
+			}
 		} else if adj < s.Min {
 			ok = false
 			break
