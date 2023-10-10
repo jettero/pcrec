@@ -39,3 +39,8 @@ type Matcher struct {
 	First   rune
 	Last    rune
 }
+
+type REsult struct { // <--- I think this is hilarious, sorry
+	Groups  []*[]rune
+	Matched bool
+}

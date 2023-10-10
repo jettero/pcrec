@@ -2,10 +2,7 @@ package lib
 
 import "fmt"
 
-type REsult struct { // <--- I think this is hilarious, sorry
-	Groups  []*[]rune
-	Matched bool
-}
+var searchTrace bool
 
 func (n *NFA) Search(candidate string) (ret *REsult) {
 	return n.SearchRunes([]rune(candidate))
