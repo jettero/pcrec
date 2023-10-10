@@ -8,44 +8,40 @@ func (n *NFA) Search(candidate string) (ret *REsult) {
 	return n.SearchRunes([]rune(candidate))
 }
 
-var searchTrace bool
-
 func (n *NFA) SearchRunes(candidate []rune) (res *REsult) {
 	searchTrace = TruthyEnv("PCREC_TRACE") || TruthyEnv("RE_SEARCH_TRACE")
 	res = &REsult{}
-	bak := 0
 
 	if searchTrace {
 		fmt.Printf("---=: SearchRunes(\"%s\")\n", PrintableizeRunes(candidate, 0))
 	}
 
 outer:
-	for cpos := 0; cpos < len(candidate); cpos++ {
-		mpos := cpos
+	for mpos, cpos := 0, 0; cpos < len(candidate); cpos++ {
+		mpos = cpos
 		res.Groups = res.Groups[:0]
 		if searchTrace {
-			fmt.Printf("  -- candidate[%d:]=\"%s\"\n", cpos, PrintableizeRunes(candidate[cpos:], 20))
+			fmt.Printf("  -- candidate[%d:]=\"%s\"\n", mpos, PrintableizeRunes(candidate[mpos:], 20))
 		}
 		for _, sta := range n.States {
-			if adj, b, ok := sta.SearchRunes(res, candidate[mpos:]); ok {
+			if adj, bak, ok := sta.SearchRunes(res, candidate[mpos:]); ok {
 				mpos += adj
-				bak = b
+				if bak > 0 && searchTrace {
+					fmt.Printf("    -- TODO mpos=%d bak=%d len=%d\n", mpos, bak, len(candidate))
+				}
 			} else {
+				// fmt.Printf("    -- nomatch\n")
 				continue outer // match states in order or longjump to the outer loop
 			}
 		}
 		if searchTrace {
-			fmt.Printf("  -- MATCHED\n")
+			fmt.Printf("    -- FIN: MATCHED\n")
 		}
 		res.Matched = true // if the States loop finishes, then we matched
 		return             // so we only continue from the inner loop
 	}
 	if searchTrace {
-		if bak > 0 {
-			fmt.Printf("  -- nomatch (TODO: backup 1-%d)\n", bak)
-		} else {
-			fmt.Printf("  -- nomatch\n")
-		}
+		fmt.Printf("  -- FIN: nomatch\n")
 	}
 	res.Matched = false // this is implied, but spelled out because it looks cool
 	return
