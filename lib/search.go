@@ -4,11 +4,11 @@ import "fmt"
 
 var searchTrace bool
 
-func (n *NFA) Search(candidate string) (ret *REsult) {
+func (n *RE) Search(candidate string) (ret *REsult) {
 	return n.SearchRunes([]rune(candidate))
 }
 
-func (n *NFA) SearchRunes(candidate []rune) (res *REsult) {
+func (n *RE) SearchRunes(candidate []rune) (res *REsult) {
 	searchTrace = TruthyEnv("PCREC_TRACE") || TruthyEnv("RE_SEARCH_TRACE")
 	res = &REsult{}
 

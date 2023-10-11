@@ -31,7 +31,7 @@ func ProcessArgs() []string {
 	}
 
 	if *ppp {
-		os.Setenv("PCREC_PP_NFA", "yes")
+		os.Setenv("PCREC_PP_RE", "yes")
 	}
 
 	return pflag.Args()
@@ -39,13 +39,13 @@ func ProcessArgs() []string {
 
 func main() {
 	for _, arg := range ProcessArgs() {
-		nfa, err := pcrec.Parse(arg)
+		re, err := pcrec.Parse(arg)
 
-		fmt.Printf("\nNFA Description for \"%s\":\n", arg)
-		if lib.TruthyEnv("PCREC_PP_NFA") {
-			pp.Println(nfa)
+		fmt.Printf("\nRE Description for \"%s\":\n", arg)
+		if lib.TruthyEnv("PCREC_PP_RE") {
+			pp.Println(re)
 		} else {
-			fmt.Print(nfa.Describe(1))
+			fmt.Print(re.Describe(1))
 		}
 
 		if err != nil {

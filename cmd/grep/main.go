@@ -47,14 +47,14 @@ func main() {
 		args = []string{"-"}
 	}
 
-	nfa, err := pcrec.Parse(pat)
+	re, err := pcrec.Parse(pat)
 	if err != nil {
 		fmt.Print(err.Error())
 		return
 	}
 
 	if lib.TruthyEnv("PCREC_TRACE") {
-		fmt.Print("---=: NFA:\n", nfa.Describe(1), "\n")
+		fmt.Print("---=: RE:\n", re.Describe(1), "\n")
 	}
 
 	for _, fname := range args {
@@ -80,11 +80,11 @@ func main() {
 			}
 			if lib.TruthyEnv("PCREC_PP_RES") {
 				fmt.Print("---=: line: ", line)
-				res := nfa.Search(line)
+				res := re.Search(line)
 				fmt.Print(res.Describe(1))
 				fmt.Println("\n")
 			} else {
-				if res := nfa.Search(line); res.Matched {
+				if res := re.Search(line); res.Matched {
 					fmt.Print(line)
 				}
 			}

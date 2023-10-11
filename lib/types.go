@@ -1,6 +1,6 @@
 package lib
 
-type NFA struct {
+type RE struct {
 	States []Stateish
 }
 

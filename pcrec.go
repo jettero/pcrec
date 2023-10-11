@@ -2,7 +2,7 @@ package pcrec
 
 import "github.com/jettero/pcrec/lib"
 
-func Parse(pat string) (*lib.NFA, error) {
+func Parse(pat string) (*lib.RE, error) {
 	return lib.Parse([]rune(pat))
 }
 

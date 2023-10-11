@@ -4,15 +4,15 @@ import (
 	"fmt"
 )
 
-func (n *NFA) SetQty(min int, max int) {
+func (n *RE) SetQty(min int, max int) {
 	n.LastStateish().SetQty(min, max)
 }
 
-func (n *NFA) SetGreedy(f bool) {
+func (n *RE) SetGreedy(f bool) {
 	n.LastStateish().SetGreedy(f)
 }
 
-func (n *NFA) SetCapture(f bool) {
+func (n *RE) SetCapture(f bool) {
 	switch typed := n.LastStateish().(type) {
 	case *Group:
 		typed.SetCapture(f)
@@ -41,7 +41,7 @@ func (g *Group) SetCapture(f bool) {
 	g.Capture = f
 }
 
-func (n *NFA) LastStateish() Stateish {
+func (n *RE) LastStateish() Stateish {
 	ls := len(n.States) - 1
 	if ls < 0 {
 		return nil
@@ -49,7 +49,7 @@ func (n *NFA) LastStateish() Stateish {
 	return n.States[ls].LastStateish()
 }
 
-func (n *NFA) AppendOrToGroupOrCreateGroup() bool {
+func (n *RE) AppendOrToGroupOrCreateGroup() bool {
 	// you are here:
 	// aba|
 	// (a|b|
@@ -109,14 +109,14 @@ func (g *Group) LastOpenGroup() *Group {
 	return nil
 }
 
-func (n *NFA) LastOpenGroup() *Group {
+func (n *RE) LastOpenGroup() *Group {
 	if i := len(n.States) - 1; i >= 0 {
 		return n.States[i].LastOpenGroup()
 	}
 	return nil
 }
 
-func (n *NFA) AppendGroup() {
+func (n *RE) AppendGroup() {
 	if lg := n.LastOpenGroup(); lg != nil {
 		lg.AppendGroup(1, 1, true, true)
 	} else {
@@ -124,7 +124,7 @@ func (n *NFA) AppendGroup() {
 	}
 }
 
-func (n *NFA) CloseGroup() error {
+func (n *RE) CloseGroup() error {
 	if lg := n.LastOpenGroup(); lg != nil {
 		lg.Closed = true
 		return nil
@@ -132,14 +132,14 @@ func (n *NFA) CloseGroup() error {
 	return fmt.Errorf("unmatched closing parenthesis")
 }
 
-func (n *NFA) CloseImplicitTopGroups() {
+func (n *RE) CloseImplicitTopGroups() {
 	if log := n.LastOpenGroup(); log != nil && log.Implicit {
 		// There should only be the one anyway, right? ... right??
 		log.Closed = true
 	}
 }
 
-func (n *NFA) AppendState(min int, max int, greedy bool) *State {
+func (n *RE) AppendState(min int, max int, greedy bool) *State {
 	if lg := n.LastOpenGroup(); lg != nil {
 		return lg.AppendState(min, max, greedy)
 	}
@@ -148,7 +148,7 @@ func (n *NFA) AppendState(min int, max int, greedy bool) *State {
 	return ret
 }
 
-func (n *NFA) AppendRuneState(runes ...rune) *State {
+func (n *RE) AppendRuneState(runes ...rune) *State {
 	s := n.AppendState(1, 1, true)
 	for _, r := range runes {
 		s.AppendMatch(r, false)
@@ -156,7 +156,7 @@ func (n *NFA) AppendRuneState(runes ...rune) *State {
 	return s
 }
 
-func (n *NFA) AppendInvertedRuneState(runes ...rune) *State {
+func (n *RE) AppendInvertedRuneState(runes ...rune) *State {
 	s := n.AppendState(1, 1, true)
 	s.And = true
 	for _, r := range runes {
@@ -165,7 +165,7 @@ func (n *NFA) AppendInvertedRuneState(runes ...rune) *State {
 	return s
 }
 
-func (n *NFA) AppendDotState() *State {
+func (n *RE) AppendDotState() *State {
 	s := n.AppendState(1, 1, true)
 	s.AppendDotMatch()
 	return s

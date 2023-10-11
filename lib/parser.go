@@ -24,7 +24,7 @@ const (
 type Parser struct {
 	trace bool
 	mode  []Context
-	top   *NFA
+	top   *RE
 	pat   []rune
 
 	r rune // current rune
@@ -43,7 +43,7 @@ type Context struct {
 	i int // p.i at time of push
 }
 
-func (p *Parser) formatError(msg string) (*NFA, error) {
+func (p *Parser) formatError(msg string) (*RE, error) {
 	firstPart := "ERROR"
 	if len(msg) > 0 {
 		firstPart = fmt.Sprintf("ERROR: %s", msg)
@@ -91,7 +91,7 @@ func (p *Parser) Printf(format string, args ...interface{}) {
 	}
 }
 
-func (p *Parser) Top(sub int) *NFA {
+func (p *Parser) Top(sub int) *RE {
 	if sub >= SUB_INIT {
 		p.n = sub
 	}
@@ -250,10 +250,10 @@ func (p *Parser) Consume(i int) {
 	}
 }
 
-func (p *Parser) Parse(pat []rune) (*NFA, error) {
+func (p *Parser) Parse(pat []rune) (*RE, error) {
 	p.trace = TruthyEnv("PCREC_TRACE") || TruthyEnv("RE_PARSE_TRACE")
 	p.mode = []Context{{m: CTX_NONE, i: 0}}
-	p.top = &NFA{}
+	p.top = &RE{}
 	p.pat = pat
 
 	p.Printf("----------------------=: Parse(%s) :=-----------------------\n", string(pat))
@@ -446,7 +446,7 @@ func (p *Parser) Parse(pat []rune) (*NFA, error) {
 	return p.top, nil
 }
 
-func Parse(pat []rune) (*NFA, error) {
+func Parse(pat []rune) (*RE, error) {
 	parser := Parser{}
 	return parser.Parse(pat)
 }

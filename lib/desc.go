@@ -85,7 +85,7 @@ func (g *Group) Describe(indent int) string {
 		istr)
 }
 
-func (n *NFA) Describe(indent int) string {
+func (n *RE) Describe(indent int) string {
 	var ret []string
 	for _, s := range n.States {
 		ret = append(ret, s.Describe(indent+1))

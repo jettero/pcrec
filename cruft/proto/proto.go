@@ -10,7 +10,7 @@ import (
 	"github.com/k0kubun/pp/v3"
 )
 
-type NFA struct {
+type RE struct {
 	States []*State `@@*`
 }
 
@@ -59,7 +59,7 @@ var (
 		{"Rune", `[^[\]*+?\\]`},
 		{"AnyRune", `.`},
 	})
-	parser = participle.MustBuild[NFA](
+	parser = participle.MustBuild[RE](
 		participle.Lexer(reLexer),
 		participle.UseLookahead(99999),
 	)
