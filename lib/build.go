@@ -4,16 +4,16 @@ import (
 	"fmt"
 )
 
-func (n *RE) SetQty(min int, max int) {
-	n.LastStateish().SetQty(min, max)
+func (r *RE) SetQty(min int, max int) {
+	r.LastStateish().SetQty(min, max)
 }
 
-func (n *RE) SetGreedy(f bool) {
-	n.LastStateish().SetGreedy(f)
+func (r *RE) SetGreedy(f bool) {
+	r.LastStateish().SetGreedy(f)
 }
 
-func (n *RE) SetCapture(f bool) {
-	switch typed := n.LastStateish().(type) {
+func (r *RE) SetCapture(f bool) {
+	switch typed := r.LastStateish().(type) {
 	case *Group:
 		typed.SetCapture(f)
 	}
@@ -41,19 +41,19 @@ func (g *Group) SetCapture(f bool) {
 	g.Capture = f
 }
 
-func (n *RE) LastStateish() Stateish {
-	ls := len(n.States) - 1
+func (r *RE) LastStateish() Stateish {
+	ls := len(r.States) - 1
 	if ls < 0 {
 		return nil
 	}
-	return n.States[ls].LastStateish()
+	return r.States[ls].LastStateish()
 }
 
-func (n *RE) AppendOrToGroupOrCreateGroup() bool {
+func (r *RE) AppendOrToGroupOrCreateGroup() bool {
 	// you are here:
 	// aba|
 	// (a|b|
-	if lg := n.LastOpenGroup(); lg != nil {
+	if lg := r.LastOpenGroup(); lg != nil {
 		lg.AppendOrClause()
 		return false
 	}
@@ -64,9 +64,9 @@ func (n *RE) AppendOrToGroupOrCreateGroup() bool {
 	// There's really no need to check anything further wrt that. Just replace
 	// the top level states with the open group.
 
-	g := &Group{States: [][]Stateish{n.States, {}},
+	g := &Group{States: [][]Stateish{r.States, {}},
 		Min: 1, Max: 1, Capture: false, Greedy: true, Implicit: true}
-	n.States = []Stateish{g}
+	r.States = []Stateish{g}
 
 	return true
 }
@@ -109,55 +109,55 @@ func (g *Group) LastOpenGroup() *Group {
 	return nil
 }
 
-func (n *RE) LastOpenGroup() *Group {
-	if i := len(n.States) - 1; i >= 0 {
-		return n.States[i].LastOpenGroup()
+func (r *RE) LastOpenGroup() *Group {
+	if i := len(r.States) - 1; i >= 0 {
+		return r.States[i].LastOpenGroup()
 	}
 	return nil
 }
 
-func (n *RE) AppendGroup() {
-	if lg := n.LastOpenGroup(); lg != nil {
+func (r *RE) AppendGroup() {
+	if lg := r.LastOpenGroup(); lg != nil {
 		lg.AppendGroup(1, 1, true, true)
 	} else {
-		n.States = append(n.States, &Group{Min: 1, Max: 1, Greedy: true, Capture: true})
+		r.States = append(r.States, &Group{Min: 1, Max: 1, Greedy: true, Capture: true})
 	}
 }
 
-func (n *RE) CloseGroup() error {
-	if lg := n.LastOpenGroup(); lg != nil {
+func (r *RE) CloseGroup() error {
+	if lg := r.LastOpenGroup(); lg != nil {
 		lg.Closed = true
 		return nil
 	}
 	return fmt.Errorf("unmatched closing parenthesis")
 }
 
-func (n *RE) CloseImplicitTopGroups() {
-	if log := n.LastOpenGroup(); log != nil && log.Implicit {
+func (r *RE) CloseImplicitTopGroups() {
+	if log := r.LastOpenGroup(); log != nil && log.Implicit {
 		// There should only be the one anyway, right? ... right??
 		log.Closed = true
 	}
 }
 
-func (n *RE) AppendState(min int, max int, greedy bool) *State {
-	if lg := n.LastOpenGroup(); lg != nil {
+func (r *RE) AppendState(min int, max int, greedy bool) *State {
+	if lg := r.LastOpenGroup(); lg != nil {
 		return lg.AppendState(min, max, greedy)
 	}
 	ret := &State{Min: min, Max: max, Greedy: greedy}
-	n.States = append(n.States, ret)
+	r.States = append(r.States, ret)
 	return ret
 }
 
-func (n *RE) AppendRuneState(runes ...rune) *State {
-	s := n.AppendState(1, 1, true)
+func (r *RE) AppendRuneState(runes ...rune) *State {
+	s := r.AppendState(1, 1, true)
 	for _, r := range runes {
 		s.AppendMatch(r, false)
 	}
 	return s
 }
 
-func (n *RE) AppendInvertedRuneState(runes ...rune) *State {
-	s := n.AppendState(1, 1, true)
+func (r *RE) AppendInvertedRuneState(runes ...rune) *State {
+	s := r.AppendState(1, 1, true)
 	s.And = true
 	for _, r := range runes {
 		s.AppendMatch(r, true)
@@ -165,8 +165,8 @@ func (n *RE) AppendInvertedRuneState(runes ...rune) *State {
 	return s
 }
 
-func (n *RE) AppendDotState() *State {
-	s := n.AppendState(1, 1, true)
+func (r *RE) AppendDotState() *State {
+	s := r.AppendState(1, 1, true)
 	s.AppendDotMatch()
 	return s
 }

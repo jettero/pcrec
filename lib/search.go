@@ -9,11 +9,11 @@ type REsult struct { // <--- I think this is hilarious, sorry
 	Matched bool
 }
 
-func (n *RE) Search(candidate string) (ret *REsult) {
-	return n.SearchRunes([]rune(candidate))
+func (r *RE) Search(candidate string) (ret *REsult) {
+	return r.SearchRunes([]rune(candidate))
 }
 
-func (n *RE) SearchRunes(candidate []rune) (res *REsult) {
+func (r *RE) SearchRunes(candidate []rune) (res *REsult) {
 	searchTrace = TruthyEnv("PCREC_TRACE") || TruthyEnv("RE_SEARCH_TRACE")
 	res = &REsult{}
 
@@ -28,7 +28,7 @@ outer:
 		if searchTrace {
 			fmt.Printf("  -- candidate[%d:]=\"%s\"\n", mpos, PrintableizeRunes(candidate[mpos:], 20))
 		}
-		for _, sta := range n.States {
+		for _, sta := range r.States {
 			if adj, bak, ok := sta.SearchRunes(res, candidate[mpos:]); ok {
 				mpos += adj
 				if bak > 0 && searchTrace {

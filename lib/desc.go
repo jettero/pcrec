@@ -85,9 +85,9 @@ func (g *Group) Describe(indent int) string {
 		istr)
 }
 
-func (n *RE) Describe(indent int) string {
+func (r *RE) Describe(indent int) string {
 	var ret []string
-	for _, s := range n.States {
+	for _, s := range r.States {
 		ret = append(ret, s.Describe(indent+1))
 	}
 	return strings.Join(ret, "\n")
