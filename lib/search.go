@@ -4,6 +4,11 @@ import "fmt"
 
 var searchTrace bool
 
+type REsult struct { // <--- I think this is hilarious, sorry
+	Groups  []*[]rune
+	Matched bool
+}
+
 func (n *RE) Search(candidate string) (ret *REsult) {
 	return n.SearchRunes([]rune(candidate))
 }
