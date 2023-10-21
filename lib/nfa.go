@@ -12,11 +12,43 @@ type NFA struct {
 	* and prolly not quite like the above.                  *
 	********************************************************/
 
-	Transitions map[*Matcher][]*NFA
+	Transitions map[*State][]*NFA
+	Whence      Stateish
 }
 
-func BuildNFA(r *RE) *NFA {
-	ret := &NFA{}
+func (this *NFA) addTransitions(stateish Stateish, next *NFA) {
+	switch typed := stateish.(type) {
+	case *State:
+		rtst := this.Transitions[typed]
+		rtst = append(rtst, next)
+	case *Group:
+		for _, slist := range typed.States { // slist OR slist OR slist
+			var first, last, ithis *NFA
+			for _, sti := range slist { // sti . sti . sti
+				ithis = &NFA{Whence: sti}
+				if first == nil {
+					first = ithis
+					this.addTransitions(sti, ithis)
+				} else {
+					last.addTransitions(sti, ithis)
+				}
+				last = ithis
+			}
+		}
+	}
+}
 
-	return ret
+func BuildNFA(r *RE) (ret *NFA) {
+	var last *NFA
+	var this *NFA
+	for _, stateish := range r.States {
+		this = &NFA{Whence: stateish}
+		if ret == nil {
+			ret = this
+		} else {
+			last.addTransitions(stateish, this)
+		}
+		last = this
+	}
+	return
 }
