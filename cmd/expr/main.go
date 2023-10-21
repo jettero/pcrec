@@ -14,6 +14,7 @@ import (
 func ProcessArgs() []string {
 	var trace *bool = pflag.BoolP("verbose", "v", false, "print verbose debug messages during the RE parse")
 	var ppp *bool = pflag.BoolP("pp", "p", false, "print the analysis with k0kubun/pp rather than the internal formatter")
+	var dot *bool = pflag.BoolP("dot", false, "output graphviz dot format")
 	var halp *bool = pflag.BoolP("help", "h", false, "show the help screen text")
 
 	pflag.Parse()
@@ -24,6 +25,10 @@ func ProcessArgs() []string {
 		pflag.PrintDefaults()
 		fmt.Println(b.String())
 		os.Exit(0)
+	}
+
+	if *dot {
+		os.Setenv("PCREC_GV_DOT", "yes")
 	}
 
 	if *trace {
@@ -41,17 +46,20 @@ func main() {
 	for _, arg := range ProcessArgs() {
 		re, err := pcrec.Parse(arg)
 
-		fmt.Printf("\nRE Description for \"%s\":\n", arg)
-		if lib.TruthyEnv("PCREC_PP_RE") {
-			pp.Println(re)
+		if lib.TruthyEnv("PCREC_GV_DOT") {
 		} else {
-			fmt.Print(re.Describe(1))
-		}
+			fmt.Printf("\nRE Description for \"%s\":\n", arg)
+			if lib.TruthyEnv("PCREC_PP_RE") {
+				pp.Println(re)
+			} else {
+				fmt.Print(re.Describe(1))
+			}
 
-		if err != nil {
-			fmt.Printf("RE-ARG: %s\n", arg)
-			fmt.Printf("%+v\n", err)
+			if err != nil {
+				fmt.Printf("RE-ARG: %s\n", arg)
+				fmt.Printf("%+v\n", err)
+			}
+			fmt.Println()
 		}
-		fmt.Println()
 	}
 }
