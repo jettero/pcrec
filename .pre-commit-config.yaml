@@ -1,7 +1,6 @@
 fail_fast: true
 
 repos:
-
 - repo: https://github.com/pre-commit/pre-commit-hooks
   rev: v2.5.0
   hooks:
@@ -34,11 +33,9 @@ repos:
     types: [ go ]
     language: pygrep
 
-  # I didn't use go-unit-tests cuz I don't want to test curft/ and cmd/ and
-  # exlucde doesn't work if you're using ./... in the test command
   - id: test
     name: test
     pass_filenames: false
-    entry: go test -failfast
+    entry: env SKIP_TEST_LINE_MATCH_THINGS=1 go test -failfast
     types: [go]
     language: system

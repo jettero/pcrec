@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/jettero/pcrec"
+	"github.com/jettero/pcrec/lib"
 )
 
 var shouldCompile = []string{
@@ -113,6 +114,9 @@ var LMT []LineMatchThing = []LineMatchThing{
 }
 
 func TestLineMatchThings(t *testing.T) {
+	if lib.TruthyEnv("SKIP_TEST_LINE_MATCH_THINGS") {
+		t.Skip("skipping line match tests")
+	}
 	for i, lmt := range LMT {
 		t.Run(fmt.Sprintf("%03d/%s", i, lmt.pat), func(t *testing.T) {
 			res, err := pcrec.Search(lmt.pat, lmt.line)
