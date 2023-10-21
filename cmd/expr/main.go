@@ -14,7 +14,7 @@ import (
 func ProcessArgs() []string {
 	var trace *bool = pflag.BoolP("verbose", "v", false, "print verbose debug messages during the RE parse")
 	var ppp *bool = pflag.BoolP("pp", "p", false, "print the analysis with k0kubun/pp rather than the internal formatter")
-	var dot *bool = pflag.BoolP("dot", false, "output graphviz dot format")
+	var dot *bool = pflag.BoolP("dot", "D", false, "output graphviz dot format")
 	var halp *bool = pflag.BoolP("help", "h", false, "show the help screen text")
 
 	pflag.Parse()
@@ -47,6 +47,16 @@ func main() {
 		re, err := pcrec.Parse(arg)
 
 		if lib.TruthyEnv("PCREC_GV_DOT") {
+			if err == nil {
+				if nfa := lib.BuildNFA(re); nfa != nil {
+					fmt.Println("TODO")
+				}
+			} else {
+				fmt.Println("digraph graphname {\n  /*")
+				fmt.Println("  **", err)
+				fmt.Println("  */\n}")
+			}
+
 		} else {
 			fmt.Printf("\nRE Description for \"%s\":\n", arg)
 			if lib.TruthyEnv("PCREC_PP_RE") {
