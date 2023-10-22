@@ -9,8 +9,9 @@ type Stateish interface {
 	SetGreedy(f bool)
 	LastStateish() Stateish
 	LastOpenGroup() *Group
-	Describe(indent int) string
 	SearchRunes(res *REsult, candidate []rune) (int, int, bool)
+	Describe(indent int) string
+	short(*numberedItems) string
 }
 
 type State struct {

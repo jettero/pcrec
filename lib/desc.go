@@ -2,6 +2,7 @@ package lib
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 	"unicode"
 )
@@ -146,4 +147,61 @@ func (r *REsult) Describe(indent int) string {
 	}
 
 	return ret + "\n"
+}
+
+func (s *State) short(un *numberedItems) string {
+	return un.get("S", s)
+}
+
+func (g *Group) short(un *numberedItems) string {
+	var istr []string
+	for _, items := range g.States {
+		var iistr []string
+		for _, item := range items {
+			iistr = append(iistr, item.short(un))
+		}
+		istr = append(istr, strings.Join(iistr, "."))
+	}
+	return fmt.Sprintf("%s<%s>", un.get("G", g),
+		strings.Join(uniqueStrings(istr), "|"))
+}
+
+func (n *NFA) asDotNodes(un *numberedItems) []string {
+	ret := []string{fmt.Sprintf("%s [label=\"%s\"]", un.get("N", n),
+		n.Whence.short(un))}
+	for s, nfaSlice := range n.Transitions {
+		if !un.in("state", s) {
+			ret = append(ret, fmt.Sprintf("%s [label=\"qty%s\"]",
+				un.get("S", s), Qstr(s.Min, s.Max, s.Greedy)))
+		}
+		for _, ni := range nfaSlice {
+			if ni == nil || un.in("nfa", ni) {
+				continue
+			}
+			for _, line := range ni.asDotNodes(un) {
+				ret = append(ret, line)
+			}
+		}
+	}
+	return ret
+}
+
+func (n *NFA) asDotTransitions(un *numberedItems) (ret []string) {
+	// for s, nfaSlice := range n.Transitions {
+	//     for _, nfa := range nfaSlice {
+	//         ret = append(ret, fmt.Sprintf("S%d -> N%d", un.get("state",
+	//     }
+	// }
+	return
+}
+
+func (n *NFA) AsDot() string {
+	un := makeNumberedItems()
+	nodes := n.asDotNodes(un)
+	sort.Strings(nodes)
+	edges := n.asDotTransitions(un)
+	sort.Strings(edges)
+	sep := "\n "
+	lines := strings.Join(nodes, sep) + sep + strings.Join(edges, sep)
+	return fmt.Sprintf("digraph G{\n %s\n}", lines)
 }

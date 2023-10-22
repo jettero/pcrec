@@ -16,16 +16,21 @@ type NFA struct {
 	Whence      Stateish
 }
 
+func makeNFA(whence Stateish) (ret *NFA) {
+	ret = &NFA{Whence: whence, Transitions: make(map[*State][]*NFA)}
+	ret.addTransitions(whence, nil)
+	return
+}
+
 func (this *NFA) addTransitions(stateish Stateish, next *NFA) {
 	switch typed := stateish.(type) {
 	case *State:
-		rtst := this.Transitions[typed]
-		rtst = append(rtst, next)
+		this.Transitions[typed] = append(this.Transitions[typed], next)
 	case *Group:
 		for _, slist := range typed.States { // slist OR slist OR slist
 			var first, last, ithis *NFA
 			for _, sti := range slist { // sti . sti . sti
-				ithis = &NFA{Whence: sti}
+				ithis = makeNFA(sti)
 				if first == nil {
 					first = ithis
 					this.addTransitions(sti, ithis)
@@ -39,16 +44,16 @@ func (this *NFA) addTransitions(stateish Stateish, next *NFA) {
 }
 
 func BuildNFA(r *RE) (ret *NFA) {
-	var last *NFA
+	//	var last *NFA
 	var this *NFA
 	for _, stateish := range r.States {
-		this = &NFA{Whence: stateish}
+		this = makeNFA(stateish)
 		if ret == nil {
 			ret = this
-		} else {
-			last.addTransitions(stateish, this)
+			// } else {
+			//     last.addTransitions(stateish, this)
 		}
-		last = this
+		//		last = this
 	}
 	return
 }

@@ -49,7 +49,7 @@ func main() {
 		if lib.TruthyEnv("PCREC_GV_DOT") {
 			if err == nil {
 				if nfa := lib.BuildNFA(re); nfa != nil {
-					fmt.Println("TODO")
+					fmt.Println(nfa.AsDot())
 				}
 			} else {
 				fmt.Println("digraph graphname {\n  /*")
