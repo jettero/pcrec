@@ -195,8 +195,8 @@ func (n *NFA) asDotTransitions(un *numberedItems) (ret []string) {
 		st := un.get("S", s)
 		for _, nfa := range nfaSlice {
 			mt := un.get("N", nfa)
-			ret = append(ret, fmt.Sprintf("// %s -> %s -> %s",
-				nt, st, mt))
+			ret = append(ret, fmt.Sprintf("%s -> %s [label=\"%s\"]",
+				nt, mt, st))
 		}
 	}
 	return
