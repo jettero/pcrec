@@ -162,8 +162,11 @@ func (g *Group) short(un *numberedItems) string {
 		}
 		istr = append(istr, strings.Join(iistr, "."))
 	}
-	return fmt.Sprintf("%s<%s>", un.get("G", g),
-		strings.Join(uniqueStrings(istr), "|"))
+	flags := ""
+	if !g.Capture {
+		flags += "?:"
+	}
+	return fmt.Sprintf("(%s%s)", flags, strings.Join(uniqueStrings(istr), "|"))
 }
 
 func (n *NFA) asDotNodes(un *numberedItems) []string {
@@ -187,21 +190,31 @@ func (n *NFA) asDotNodes(un *numberedItems) []string {
 }
 
 func (n *NFA) asDotTransitions(un *numberedItems) (ret []string) {
-	// for s, nfaSlice := range n.Transitions {
-	//     for _, nfa := range nfaSlice {
-	//         ret = append(ret, fmt.Sprintf("S%d -> N%d", un.get("state",
-	//     }
-	// }
+	nt := un.get("N", n)
+	for s, nfaSlice := range n.Transitions {
+		st := un.get("S", s)
+		for _, nfa := range nfaSlice {
+			mt := un.get("N", nfa)
+			ret = append(ret, fmt.Sprintf("// %s -> %s -> %s",
+				nt, st, mt))
+		}
+	}
 	return
 }
 
 func (n *NFA) AsDot() string {
 	un := makeNumberedItems()
-	nodes := n.asDotNodes(un)
-	sort.Strings(nodes)
-	edges := n.asDotTransitions(un)
-	sort.Strings(edges)
-	sep := "\n "
-	lines := strings.Join(nodes, sep) + sep + strings.Join(edges, sep)
-	return fmt.Sprintf("digraph G{\n %s\n}", lines)
+	lines := []string{"digraph G {"}
+	t := n.asDotNodes(un)
+	sort.Strings(t)
+	for _, i := range t {
+		lines = append(lines, i)
+	}
+	lines = append(lines, "")
+	t = n.asDotTransitions(un)
+	sort.Strings(t)
+	for _, i := range t {
+		lines = append(lines, i)
+	}
+	return fmt.Sprintf("%s\n}", strings.Join(lines, "\n  "))
 }
