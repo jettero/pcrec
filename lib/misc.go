@@ -37,9 +37,26 @@ type numberedItems struct {
 	next map[string]int
 }
 
-func (un *numberedItems) get(tag string, thing interface{}) string {
-	if thing == nil {
-		return fmt.Sprintf("%s%d", tag, 0)
+func (un *numberedItems) get(thing interface{}) string {
+	tag := "?"
+	switch typed := thing.(type) {
+	case *State:
+		tag = "S"
+		if typed == nil {
+			return tag + "?"
+		}
+	case *Group:
+		tag = "G"
+		if typed == nil {
+			return tag + "?"
+		}
+	case *NFA:
+		tag = "N"
+		if typed == nil {
+			return tag + "?"
+		}
+	default:
+		return "?"
 	}
 	if un.id[tag] == nil {
 		un.id[tag] = make(map[interface{}]int)
