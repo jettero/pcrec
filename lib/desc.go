@@ -198,9 +198,17 @@ func (g *Group) short() string {
 func (n *NFA) asDotNodes() []string {
 	nt := GetTag(n)
 	ret := []string{fmt.Sprintf("%s [label=\"%s\"]", nt, n.Whence.medium())}
+	for _, ni := range n.children {
+		if ni == nil {
+			continue
+		}
+		for _, line := range ni.asDotNodes() {
+			ret = append(ret, line)
+		}
+	}
 	for _, nfaSlice := range n.Transitions {
 		for _, ni := range nfaSlice {
-			if ni == nil || TagDefined(ni) {
+			if ni == nil {
 				continue
 			}
 			for _, line := range ni.asDotNodes() {
