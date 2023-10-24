@@ -62,6 +62,9 @@ func Qstr(min int, max int, greedy bool) string {
 		}
 		return qstr
 	}
+	if min == 1 {
+		return ""
+	}
 	return fmt.Sprintf("{%d}", min)
 }
 
@@ -156,9 +159,6 @@ func (s *State) medium() string {
 		sstr = fmt.Sprintf("(?:%s)", sstr)
 	}
 	qstr := Qstr(s.Min, s.Max, s.Greedy)
-	if qstr == "{1}" {
-		qstr = ""
-	}
 	return fmt.Sprintf("%s: %s%s", GetTag(s), sstr, qstr)
 }
 
