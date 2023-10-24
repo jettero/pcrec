@@ -192,7 +192,7 @@ func (g *Group) short() string {
 	if !g.Capture {
 		flags += "?:"
 	}
-	return fmt.Sprintf("(%s%s)", flags, strings.Join(uniqueStrings(istr), "|"))
+	return fmt.Sprintf("(%s%s)%s", flags, strings.Join(uniqueStrings(istr), "|"), Qstr(g.Min, g.Max, g.Greedy))
 }
 
 func (n *NFA) asDotNodes(oo *numberedItems) (ret []string) {
