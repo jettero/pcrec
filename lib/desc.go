@@ -114,23 +114,6 @@ func (m *Matcher) Describe() string {
 	return ret
 }
 
-func (s *State) Describe(indent int) string {
-	istr := strings.Repeat(INDENT, indent)
-	ret := []string{}
-	for _, m := range s.Match {
-		ret = append(ret, m.Describe())
-	}
-	var junk string
-	if s.And {
-		junk = " && "
-	} else {
-		junk = " || "
-	}
-	sstr := strings.Join(ret, junk)
-	qstr := Qstr(s.Min, s.Max, s.Greedy)
-	return fmt.Sprintf("%sS%s => %s", istr, qstr, sstr)
-}
-
 func (r *REsult) Describe(indent int) string {
 	istr := strings.Repeat(INDENT, indent)
 	jstr := istr + INDENT
@@ -151,6 +134,10 @@ func (r *REsult) Describe(indent int) string {
 
 func (s *State) short() string {
 	return GetTag(s)
+}
+
+func (g *Group) medium() string {
+	return fmt.Sprintf("%s: %s", GetTag(g), g.short())
 }
 
 func (s *State) medium() string {
@@ -175,6 +162,23 @@ func (s *State) medium() string {
 	return fmt.Sprintf("%s: %s%s", GetTag(s), sstr, qstr)
 }
 
+func (s *State) Describe(indent int) string {
+	istr := strings.Repeat(INDENT, indent)
+	ret := []string{}
+	for _, m := range s.Match {
+		ret = append(ret, m.Describe())
+	}
+	var junk string
+	if s.And {
+		junk = " && "
+	} else {
+		junk = " || "
+	}
+	sstr := strings.Join(ret, junk)
+	qstr := Qstr(s.Min, s.Max, s.Greedy)
+	return fmt.Sprintf("%sS%s => %s", istr, qstr, sstr)
+}
+
 func (g *Group) short() string {
 	var istr []string
 	for _, items := range g.States {
@@ -193,8 +197,7 @@ func (g *Group) short() string {
 
 func (n *NFA) asDotNodes() []string {
 	nt := GetTag(n)
-	ret := []string{fmt.Sprintf("%s [label=\"%s: %s\"]", nt, nt,
-		n.Whence.short())}
+	ret := []string{fmt.Sprintf("%s [label=\"%s\"]", nt, n.Whence.medium())}
 	for _, nfaSlice := range n.Transitions {
 		for _, ni := range nfaSlice {
 			if ni == nil || TagDefined(ni) {
@@ -211,17 +214,26 @@ func (n *NFA) asDotNodes() []string {
 func (n *NFA) asDotTransitions() (ret []string) {
 	nt := GetTag(n)
 	for s, nfaSlice := range n.Transitions {
-		st := s.medium()
-		for _, nfa := range nfaSlice {
-			if nfa == nil {
-				ret = append(ret, fmt.Sprintf("%s -> F [label=\"%s\"]",
-					nt, st))
-			} else {
-				mt := GetTag(nfa)
-				ret = append(ret, fmt.Sprintf("%s -> %s [label=\"%s\"]",
-					nt, mt, st))
-				for _, line := range nfa.asDotTransitions() {
-					ret = append(ret, line)
+		for _, m := range s.Match {
+			// XXX: this is slightly spurious since it's going to be wrong
+			// for the case of [\D\W] or similar.
+			if s.Max != 0 {
+				for _, nfa := range nfaSlice {
+					if nfa == nil {
+						ret = append(ret, fmt.Sprintf("%s -> F [label=\"%s\"]",
+							nt, m.Describe()))
+					} else {
+						mt := GetTag(nfa)
+						ret = append(ret, fmt.Sprintf("%s -> %s [label=\"%s\"]",
+							nt, mt, m.Describe()))
+						for _, line := range nfa.asDotTransitions() {
+							ret = append(ret, line)
+						}
+					}
+				}
+				if s.Max < 0 || s.Max > 1 {
+					ret = append(ret, fmt.Sprintf("%s -> %s [label=\"%s\"]",
+						nt, nt, m.Describe()))
 				}
 			}
 		}

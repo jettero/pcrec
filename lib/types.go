@@ -12,6 +12,7 @@ type Stateish interface {
 	SearchRunes(res *REsult, candidate []rune) (int, int, bool)
 	Describe(indent int) string
 	short() string
+	medium() string
 }
 
 type State struct {
