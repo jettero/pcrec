@@ -91,7 +91,7 @@ func (r *RE) Describe(indent int) string {
 	for _, s := range r.States {
 		ret = append(ret, s.Describe(indent+1))
 	}
-	return strings.Join(ret, "\n")
+	return fmt.Sprintf("RE:\n%s", strings.Join(ret, "\n"))
 }
 
 func (m *Matcher) Describe() string {
@@ -149,11 +149,11 @@ func (r *REsult) Describe(indent int) string {
 	return ret + "\n"
 }
 
-func (s *State) short(un *numberedItems) string {
-	return un.get(s)
+func (s *State) short() string {
+	return GetTag(s)
 }
 
-func (s *State) medium(un *numberedItems) string {
+func (s *State) medium() string {
 	ret := []string{}
 	for _, m := range s.Match {
 		ret = append(ret, m.Describe())
@@ -172,15 +172,15 @@ func (s *State) medium(un *numberedItems) string {
 	if qstr == "{1}" {
 		qstr = ""
 	}
-	return fmt.Sprintf("%s: %s%s", un.get(s), sstr, qstr)
+	return fmt.Sprintf("%s: %s%s", GetTag(s), sstr, qstr)
 }
 
-func (g *Group) short(un *numberedItems) string {
+func (g *Group) short() string {
 	var istr []string
 	for _, items := range g.States {
 		var iistr []string
 		for _, item := range items {
-			iistr = append(iistr, item.short(un))
+			iistr = append(iistr, item.short())
 		}
 		istr = append(istr, strings.Join(iistr, "."))
 	}
@@ -191,19 +191,16 @@ func (g *Group) short(un *numberedItems) string {
 	return fmt.Sprintf("(%s%s)", flags, strings.Join(uniqueStrings(istr), "|"))
 }
 
-func (n *NFA) asDotNodes(un *numberedItems) []string {
-	nt := un.get(n)
-	if nt == "N1" {
-		nt = "I"
-	}
+func (n *NFA) asDotNodes() []string {
+	nt := GetTag(n)
 	ret := []string{fmt.Sprintf("%s [label=\"%s: %s\"]", nt, nt,
-		n.Whence.short(un))}
+		n.Whence.short())}
 	for _, nfaSlice := range n.Transitions {
 		for _, ni := range nfaSlice {
-			if ni == nil || un.in("nfa", ni) {
+			if ni == nil || TagDefined(ni) {
 				continue
 			}
-			for _, line := range ni.asDotNodes(un) {
+			for _, line := range ni.asDotNodes() {
 				ret = append(ret, line)
 			}
 		}
@@ -211,23 +208,19 @@ func (n *NFA) asDotNodes(un *numberedItems) []string {
 	return ret
 }
 
-func (n *NFA) asDotTransitions(un *numberedItems) (ret []string) {
-	if n == nil {
-		ret = append(ret, "// INTERNAL ERROR HERE (442)")
-		return
-	}
-	nt := un.get(n)
+func (n *NFA) asDotTransitions() (ret []string) {
+	nt := GetTag(n)
 	for s, nfaSlice := range n.Transitions {
-		st := s.medium(un)
+		st := s.medium()
 		for _, nfa := range nfaSlice {
 			if nfa == nil {
 				ret = append(ret, fmt.Sprintf("%s -> F [label=\"%s\"]",
 					nt, st))
 			} else {
-				mt := un.get(nfa)
+				mt := GetTag(nfa)
 				ret = append(ret, fmt.Sprintf("%s -> %s [label=\"%s\"]",
 					nt, mt, st))
-				for _, line := range nfa.asDotTransitions(un) {
+				for _, line := range nfa.asDotTransitions() {
 					ret = append(ret, line)
 				}
 			}
@@ -237,10 +230,8 @@ func (n *NFA) asDotTransitions(un *numberedItems) (ret []string) {
 }
 
 func (n *NFA) AsDot() string {
-	un := makeNumberedItems()
-
 	lines := []string{"digraph G {"}
-	t := n.asDotNodes(un)
+	t := n.asDotNodes()
 	sort.Strings(t)
 	for _, i := range t {
 		lines = append(lines, i)
@@ -249,7 +240,7 @@ func (n *NFA) AsDot() string {
 	lines = append(lines, "F [label=\"F: Accept\"]")
 	lines = append(lines, "")
 
-	t = n.asDotTransitions(un)
+	t = n.asDotTransitions()
 	sort.Strings(t)
 	for _, i := range t {
 		lines = append(lines, i)

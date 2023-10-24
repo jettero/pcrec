@@ -37,45 +37,52 @@ type numberedItems struct {
 	next map[string]int
 }
 
-func (un *numberedItems) get(thing interface{}) string {
-	tag := "?"
+func TypeSymbolForThing(thing interface{}) (ts string) {
+	ts = "?"
 	switch typed := thing.(type) {
 	case *State:
-		tag = "S"
+		ts = "S"
 		if typed == nil {
-			return tag + "?"
+			ts += "?"
 		}
 	case *Group:
-		tag = "G"
+		ts = "G"
 		if typed == nil {
-			return tag + "?"
+			ts += "?"
 		}
 	case *NFA:
-		tag = "N"
+		ts = "N"
 		if typed == nil {
-			return tag + "?"
+			ts += "?"
 		}
-	default:
-		return "?"
 	}
-	if un.id[tag] == nil {
-		un.id[tag] = make(map[interface{}]int)
-	}
-	if un.id[tag][thing] == 0 {
-		un.next[tag] += 1
-		un.id[tag][thing] = un.next[tag]
-	}
-	return fmt.Sprintf("%s%d", tag, un.id[tag][thing])
+	return
 }
 
-func (un *numberedItems) in(tag string, thing interface{}) bool {
+func (un *numberedItems) get(thing interface{}) string {
+	ts := TypeSymbolForThing(thing)
+	if ts[len(ts)-1] == '?' {
+		return ts
+	}
+	if un.id[ts] == nil {
+		un.id[ts] = make(map[interface{}]int)
+	}
+	if un.id[ts][thing] == 0 {
+		un.next[ts] += 1
+		un.id[ts][thing] = un.next[ts]
+	}
+	return fmt.Sprintf("%s%d", ts, un.id[ts][thing])
+}
+
+func (un *numberedItems) in(thing interface{}) bool {
+	ts := TypeSymbolForThing(thing)
 	if thing == nil {
 		return false
 	}
-	if un.id[tag] == nil {
+	if un.id[ts] == nil {
 		return false
 	}
-	if un.id[tag][thing] == 0 {
+	if un.id[ts][thing] == 0 {
 		return false
 	}
 	return true
@@ -84,4 +91,14 @@ func (un *numberedItems) in(tag string, thing interface{}) bool {
 func makeNumberedItems() *numberedItems {
 	return &numberedItems{id: make(map[string]map[interface{}]int),
 		next: make(map[string]int)}
+}
+
+var GLOBAL_UN *numberedItems = makeNumberedItems()
+
+func GetTag(thing interface{}) string {
+	return GLOBAL_UN.get(thing)
+}
+
+func TagDefined(thing interface{}) bool {
+	return GLOBAL_UN.in(thing)
 }

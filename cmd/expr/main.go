@@ -58,7 +58,6 @@ func main() {
 			}
 
 		} else {
-			fmt.Printf("\nRE Description for \"%s\":\n", arg)
 			if lib.TruthyEnv("PCREC_PP_RE") {
 				pp.Println(re)
 			} else {

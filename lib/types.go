@@ -11,7 +11,7 @@ type Stateish interface {
 	LastOpenGroup() *Group
 	SearchRunes(res *REsult, candidate []rune) (int, int, bool)
 	Describe(indent int) string
-	short(*numberedItems) string
+	short() string
 }
 
 type State struct {
