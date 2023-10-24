@@ -59,6 +59,14 @@ func TypeSymbolForThing(thing interface{}) (ts string) {
 	return
 }
 
+func (un *numberedItems) onlyOnce(thing interface{}) bool {
+	if un.in(thing) {
+		return false
+	}
+	un.get(thing)
+	return true
+}
+
 func (un *numberedItems) get(thing interface{}) string {
 	ts := TypeSymbolForThing(thing)
 	if ts[len(ts)-1] == '?' {

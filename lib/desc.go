@@ -195,14 +195,21 @@ func (g *Group) short() string {
 	return fmt.Sprintf("(%s%s)", flags, strings.Join(uniqueStrings(istr), "|"))
 }
 
-func (n *NFA) asDotNodes() []string {
+func (n *NFA) asDotNodes(oo *numberedItems) (ret []string) {
+	if oo == nil {
+		oo = makeNumberedItems()
+	}
+	if !oo.onlyOnce(n) {
+		return
+	}
 	nt := GetTag(n)
-	ret := []string{fmt.Sprintf("%s [label=\"%s\"]", nt, n.Whence.medium())}
+	ret = append(ret, fmt.Sprintf("%s [label=\"%s\"]",
+		nt, n.Whence.medium()))
 	for _, ni := range n.children {
 		if ni == nil {
 			continue
 		}
-		for _, line := range ni.asDotNodes() {
+		for _, line := range ni.asDotNodes(oo) {
 			ret = append(ret, line)
 		}
 	}
@@ -211,12 +218,12 @@ func (n *NFA) asDotNodes() []string {
 			if ni == nil {
 				continue
 			}
-			for _, line := range ni.asDotNodes() {
+			for _, line := range ni.asDotNodes(oo) {
 				ret = append(ret, line)
 			}
 		}
 	}
-	return ret
+	return
 }
 
 func (n *NFA) asDotTransitions() (ret []string) {
@@ -251,7 +258,7 @@ func (n *NFA) asDotTransitions() (ret []string) {
 
 func (n *NFA) AsDot() string {
 	lines := []string{"digraph G {"}
-	t := n.asDotNodes()
+	t := n.asDotNodes(nil)
 	sort.Strings(t)
 	for _, i := range t {
 		lines = append(lines, i)
