@@ -153,7 +153,7 @@ func (s *State) medium() string {
 	}
 	sstr := strings.Join(ret, junk)
 	if len(ret) > 1 {
-		sstr = fmt.Sprintf("(%s)", sstr)
+		sstr = fmt.Sprintf("(?:%s)", sstr)
 	}
 	qstr := Qstr(s.Min, s.Max, s.Greedy)
 	if qstr == "{1}" {
@@ -203,8 +203,7 @@ func (n *NFA) asDotNodes(oo *numberedItems) (ret []string) {
 		return
 	}
 	nt := GetTag(n)
-	ret = append(ret, fmt.Sprintf("%s [label=\"%s\"]",
-		nt, n.Whence.medium()))
+	ret = append(ret, fmt.Sprintf("%s [label=\"%s\"]", nt, n.Whence.medium()))
 	for _, ni := range n.children {
 		if ni == nil {
 			continue
