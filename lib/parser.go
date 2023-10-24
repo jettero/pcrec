@@ -418,13 +418,25 @@ func (p *Parser) Parse(pat []rune) (*RE, error) {
 					if p.mode[len(p.mode)-1].n != SUB_REP {
 						return p.formatError("quantifier without preceeding repeatable")
 					}
-					var a int = 0
-					var b int = -1
-					if num, err := strconv.ParseInt(string(p.m_rreg1), 10, 0); err == nil {
+					var a int = -1337 // elite way to see if we missed something
+					var b int = -1337
+					if len(p.m_rreg1) == 0 {
+						a = 0
+					} else if num, err := strconv.ParseInt(string(p.m_rreg1), 10, 0); err == nil {
 						a = int(num)
+						b = a
+					} else {
+						return p.formatError(fmt.Sprintf("unable to parse \"%s\" as a number", string(p.m_rreg1)))
 					}
-					if num, err := strconv.ParseInt(string(p.m_rreg2), 10, 0); err == nil {
+					if len(p.m_rreg2) == 0 {
+						b = -1
+					} else if num, err := strconv.ParseInt(string(p.m_rreg2), 10, 0); err == nil {
 						b = int(num)
+					} else {
+						return p.formatError(fmt.Sprintf("unable to parse \"%s\" as a number", string(p.m_rreg2)))
+					}
+					if a <= -1337 || b <= -1337 {
+						panic("unknown error parsing quantity")
 					}
 					p.PopContext(false)
 					p.Top(SUB_QTY).SetQty(a, b)
