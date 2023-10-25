@@ -1,1 +1,11 @@
+
+
+
+# the pattern dumper might do this
 /*.dot
+
+# various graphics outputs
+/*.png
+/*.jpg
+/*.jpeg
+/*.jpeg
