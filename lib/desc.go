@@ -196,9 +196,6 @@ func (g *Group) short() string {
 }
 
 func (n *NFA) asDotNodes(oo *numberedItems) (ret []string) {
-	if oo == nil {
-		oo = makeNumberedItems()
-	}
 	if !oo.onlyOnce(n) {
 		return
 	}
@@ -225,9 +222,21 @@ func (n *NFA) asDotNodes(oo *numberedItems) (ret []string) {
 	return
 }
 
-func (n *NFA) asDotTransitions() (ret []string) {
+func (n *NFA) asDotTransitions(oo *numberedItems) (ret []string) {
 	nt := GetTag(n)
+	if !oo.onlyOnce(n) {
+		return
+	}
 	for s, nfaSlice := range n.Transitions {
+		if s == nil {
+			for _, nfa := range nfaSlice {
+				ret = append(ret, fmt.Sprintf("%s -> %s [label=\"ε\"]", nt, GetTag(nfa)))
+				for _, line := range nfa.asDotTransitions(oo) {
+					ret = append(ret, line)
+				}
+			}
+			continue
+		}
 		for _, m := range s.Match {
 			// XXX: this is slightly spurious since it's going to be wrong
 			// for the case of [\D\W] or similar.
@@ -237,18 +246,21 @@ func (n *NFA) asDotTransitions() (ret []string) {
 						ret = append(ret, fmt.Sprintf("%s -> F [label=\"%s\"]",
 							nt, m.Describe()))
 					} else {
-						mt := GetTag(nfa)
-						ret = append(ret, fmt.Sprintf("%s -> %s [label=\"%s\"]",
-							nt, mt, m.Describe()))
-						for _, line := range nfa.asDotTransitions() {
+						ret = append(ret, fmt.Sprintf("%s -> %s [label=\"%s\"]", nt, GetTag(nfa), m.Describe()))
+						for _, line := range nfa.asDotTransitions(oo) {
 							ret = append(ret, line)
 						}
 					}
 				}
-				if s.Max < 0 || s.Max > 1 {
-					ret = append(ret, fmt.Sprintf("%s -> %s [label=\"%s\"]",
-						nt, nt, m.Describe()))
-				}
+				// if s.Max < 0 || s.Max > 1 {
+				//     // XXX: this should be in nfa.go as an actual transition
+				//     // XXX: also, this only works for single matcher qty
+				//     //      anyway. for groups we'll need a box around the
+				//     //      group or something to mark the return back to the
+				//     //      start of the group.
+				//     ret = append(ret, fmt.Sprintf("%s -> %s [label=\"%s\"]",
+				//         nt, nt, m.Describe()))
+				// }
 			}
 		}
 	}
@@ -257,7 +269,7 @@ func (n *NFA) asDotTransitions() (ret []string) {
 
 func (n *NFA) AsDot() string {
 	lines := []string{"digraph G {"}
-	t := n.asDotNodes(nil)
+	t := n.asDotNodes(makeNumberedItems())
 	sort.Strings(t)
 	for _, i := range t {
 		lines = append(lines, i)
@@ -266,7 +278,7 @@ func (n *NFA) AsDot() string {
 	lines = append(lines, "F [label=\"F: Accept\"]")
 	lines = append(lines, "")
 
-	t = n.asDotTransitions()
+	t = n.asDotTransitions(makeNumberedItems())
 	sort.Strings(t)
 	for _, i := range t {
 		lines = append(lines, i)

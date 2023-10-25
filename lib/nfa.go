@@ -1,6 +1,9 @@
 package lib
 
-import "fmt"
+import (
+	"fmt"
+	"os"
+)
 
 type NFA struct {
 	/********************************************************
@@ -22,7 +25,7 @@ type NFA struct {
 func makeNFA(whence Stateish) (ret *NFA) {
 	ret = &NFA{Whence: whence, Transitions: make(map[*State][]*NFA)}
 	if TruthyEnv("DEBUG_NFA_TRANSITION_BUILDER") {
-		fmt.Printf("[DNTB] makeNFA(%s) => %s\n", GetTag(whence), GetTag(ret))
+		fmt.Fprintf(os.Stderr, "[DNTB] makeNFA(%s) => %s\n", GetTag(whence), GetTag(ret))
 	}
 	switch typed := whence.(type) {
 	case *Group:
@@ -57,39 +60,75 @@ func (n *NFA) FindNFA(s Stateish) *NFA {
 	return nil
 }
 
-func (this *NFA) addTransitions(next *NFA) {
+func (this *NFA) addTransitions(next *NFA) (leaf []*State) {
 	if TruthyEnv("DEBUG_NFA_TRANSITION_BUILDER") {
-		fmt.Printf("[DNTB] %s.addTransitions(%s)\n", GetTag(this), FTag(next))
+		fmt.Fprintf(os.Stderr, "[DNTB] %s.addTransitions(%s)\n", GetTag(this), FTag(next))
 	}
 	switch typed := this.Whence.(type) {
 	case *State:
 		if TruthyEnv("DEBUG_NFA_TRANSITION_BUILDER") {
-			fmt.Printf("[DNTB]   %s -> %s\n", GetTag(typed), FTag(next))
+			fmt.Fprintf(os.Stderr, "[DNTB]   %s -> %s\n", GetTag(typed), FTag(next))
 		}
-		this.Transitions[typed] = append(this.Transitions[typed], next)
-	case *Group:
-		for _, slist := range typed.States { // slist OR slist OR slist
-			var last *NFA
-			for _, sti := range slist { // sti . sti . sti
-				nsti := this.FindNFA(sti)
-				if last != nil {
-					if TruthyEnv("DEBUG_NFA_TRANSITION_BUILDER") {
-						fmt.Printf("[DNTB]   %s.%s.%s => %s\n", GetTag(this), GetTag(typed), GetTag(last), GetTag(nsti))
-					}
-					last.addTransitions(nsti)
+		if typed.Max > 0 || typed.Max < 0 {
+			this.Transitions[typed] = append(this.Transitions[typed], next)
+			if next == nil {
+				if TruthyEnv("DEBUG_NFA_TRANSITION_BUILDER") {
+					fmt.Fprintf(os.Stderr, "[DNTB]   %s is a leaf\n", GetTag(typed))
 				}
-				last = nsti
+				leaf = append(leaf, typed)
 			}
-			last.addTransitions(next)
+			if typed.Max < 0 || typed.Max > 1 {
+				this.Transitions[typed] = append(this.Transitions[typed], this)
+			}
+		}
+	case *Group:
+		if typed.Max < 0 || typed.Max > 0 {
+			for i, slist := range typed.States { // slist OR slist OR slist
+				if len(slist) < 1 {
+					continue
+				}
+				var last *NFA
+				for j, sti := range slist { // sti . sti . sti
+					nsti := this.FindNFA(sti)
+					if last == nil {
+						if TruthyEnv("DEBUG_NFA_TRANSITION_BUILDER") {
+							fmt.Fprintf(os.Stderr, "[DNTB]   %s -> %s\n", "ε", GetTag(nsti))
+						}
+						this.Transitions[nil] = append(this.Transitions[nil], nsti)
+					} else {
+						if TruthyEnv("DEBUG_NFA_TRANSITION_BUILDER") {
+							fmt.Fprintf(os.Stderr, "[DNTB]   %s.%s[%d,%d].%s => %s\n",
+								GetTag(this), GetTag(typed), i, j, GetTag(last), GetTag(nsti))
+						}
+						for _, item := range last.addTransitions(nsti) {
+							leaf = append(leaf, item)
+						}
+					}
+					last = nsti
+				}
+				if TruthyEnv("DEBUG_NFA_TRANSITION_BUILDER") {
+					fmt.Fprintf(os.Stderr, "[DNTB]   %s.%s.%s => %s\n",
+						GetTag(this), GetTag(typed), GetTag(last), FTag(next))
+				}
+				for _, item := range last.addTransitions(next) {
+					leaf = append(leaf, item)
+					if TruthyEnv("DEBUG_NFA_TRANSITION_BUILDER") {
+						fmt.Fprintf(os.Stderr, "[DNTB]   %s ~> %s\n", GetTag(item), GetTag(this))
+					}
+					nitem := this.FindNFA(item)
+					nitem.Transitions[item] = append(nitem.Transitions[item], this)
+				}
+			}
 		}
 	}
+	return
 }
 
 func BuildNFA(r *RE) (ret *NFA) {
 	var last *NFA
 	var this *NFA
 	if TruthyEnv("DEBUG_NFA_TRANSITION_BUILDER") {
-		fmt.Println("[DNTB] BuildNFA :: start")
+		fmt.Fprintf(os.Stderr, "[DNTB] BuildNFA :: start\n")
 	}
 	for _, stateish := range r.States {
 		this = makeNFA(stateish)
@@ -101,11 +140,11 @@ func BuildNFA(r *RE) (ret *NFA) {
 		last = this
 	}
 	if TruthyEnv("DEBUG_NFA_TRANSITION_BUILDER") {
-		fmt.Println("[DNTB] BuildNFA :: add accept")
+		fmt.Fprintf(os.Stderr, "[DNTB] BuildNFA :: add accept\n")
 	}
 	last.addTransitions(nil)
 	if TruthyEnv("DEBUG_NFA_TRANSITION_BUILDER") {
-		fmt.Println("")
+		fmt.Fprintf(os.Stderr, "\n")
 	}
 	return
 }
