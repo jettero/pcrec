@@ -39,6 +39,10 @@ func ProcessArgs() []string {
 }
 
 func main() {
+	os.Exit(search())
+}
+
+func search() int {
 	args := ProcessArgs()
 	pat := args[0]
 	args = args[1:]
@@ -50,13 +54,14 @@ func main() {
 	re, err := pcrec.Parse(pat)
 	if err != nil {
 		fmt.Print(err.Error())
-		return
+		return 2
 	}
 
 	if lib.TruthyEnv("PCREC_TRACE") {
 		fmt.Print("---=: RE:\n", re.Describe(1), "\n")
 	}
 
+	matched := false
 	for _, fname := range args {
 		var fh *bufio.Reader
 		if fname == "-" {
@@ -65,7 +70,7 @@ func main() {
 			fh_, err := os.Open(fname)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "Error opening file: %v\n", err)
-				return
+				return 2
 			}
 			fh = bufio.NewReader(fh_)
 		}
@@ -76,7 +81,7 @@ func main() {
 					break
 				}
 				fmt.Fprintf(os.Stderr, "Error reading: %v\n", err)
-				return
+				return 2
 			}
 			if lib.TruthyEnv("PCREC_PP_RES") {
 				fmt.Print("---=: line: ", line)
@@ -86,8 +91,14 @@ func main() {
 			} else {
 				if res := re.Search(line); res.Matched {
 					fmt.Print(line)
+					matched = true
 				}
 			}
 		}
 	}
+
+	if matched {
+		return 0
+	}
+	return 1
 }
