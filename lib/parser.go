@@ -59,7 +59,7 @@ func (p *Parser) PushContextN(c int, n int) {
 	p.mode = append(p.mode, Context{m: c, i: p.i, n: p.n})
 	p.m = c
 	p.n = n
-	p.Printf("  PushContext(%d)\n", c)
+	p.Printf("[PARS] PushContext(%d)\n", c)
 }
 
 func (p *Parser) PushContext(c int) {
@@ -81,7 +81,7 @@ func (p *Parser) PopContextN(restore_i bool, n int) {
 		} else {
 			p.n = n
 		}
-		p.Printf("  PopContext(%v)\n", restore_i)
+		p.Printf("[PARS] PopContext(%v)\n", restore_i)
 	}
 }
 
@@ -111,12 +111,12 @@ func (p *Parser) subParseInt64(subpat []rune, bitSize int) (int64, error) {
 			if '0' <= r && r <= '8' {
 				nreg = append(nreg, r)
 				if len(nreg) >= lim {
-					p.Printf("  l-break %d\n", p.i)
+					p.Printf("[PARS] l-break %d\n", p.i)
 					break
 				}
 				p.Consume(1)
 			} else {
-				p.Printf("  d-break %d\n", p.i)
+				p.Printf("[PARS] d-break %d\n", p.i)
 				p.Consume(-1) // put back the delimiter character
 				break
 			}
@@ -124,22 +124,22 @@ func (p *Parser) subParseInt64(subpat []rune, bitSize int) (int64, error) {
 	case bitSize == 16:
 		// XXX: such matching could possibly do the \u1234 syntax too
 		lim = 2
-		p.Printf("  HEX\n")
+		p.Printf("[PARS] HEX\n")
 		for _, r := range subpat {
 			if r == '{' {
 				lim = 4
 				needsClosingBrace = true
-				p.Printf("  UNICODE\n")
+				p.Printf("[PARS] UNICODE\n")
 				p.Consume(1) // eat '{'
 			} else if ('0' <= r && r <= '9') || ('a' <= r && r <= 'f') || ('A' <= r && r <= 'F') {
 				nreg = append(nreg, r)
 				if len(nreg) >= lim {
-					p.Printf("  l-break %d\n", p.i)
+					p.Printf("[PARS] l-break %d\n", p.i)
 					break
 				}
 				p.Consume(1)
 			} else {
-				p.Printf("  d-break %d\n", p.i)
+				p.Printf("[PARS] d-break %d\n", p.i)
 				p.Consume(-1) // put back the delimiter character
 				break
 			}
@@ -147,17 +147,17 @@ func (p *Parser) subParseInt64(subpat []rune, bitSize int) (int64, error) {
 	}
 
 	if needsClosingBrace {
-		p.Printf("  NEED-CLOSE-BRACE \"...%s\"\n", string(p.pat[p.i:len(p.pat)]))
+		p.Printf("[PARS] NEED-CLOSE-BRACE \"...%s\"\n", string(p.pat[p.i:len(p.pat)]))
 		if p.pat[p.i] == '}' {
 			p.Consume(1)
-			p.Printf("  CLOSE-BRACE %d\n", p.i)
+			p.Printf("[PARS] CLOSE-BRACE %d\n", p.i)
 		} else {
-			p.Printf("  ERROR-BRACE\n")
+			p.Printf("[PARS] ERROR-BRACE\n")
 			return 0, fmt.Errorf("failed to parse \\x{...} syntax")
 		}
 	}
 
-	p.Printf("  parse-num\n")
+	p.Printf("[PARS] parse-num\n")
 
 	return strconv.ParseInt(string(nreg), bitSize, 0)
 }
@@ -169,33 +169,33 @@ func (p *Parser) GrokSlashed() (ret []rune, inverse bool, rerr error) {
 		p.Consume(1) // skip the 'x'
 		if num, err := p.subParseInt64(p.pat[p.i:len(p.pat)], 16); err == nil {
 			ret = append(ret, rune(num))
-			p.Printf("  GrokSlashed(hex) => %+v\n", ret)
+			p.Printf("[PARS] GrokSlashed(hex) => %+v\n", ret)
 		} else {
 			rerr = err
 		}
 	case '0', '1', '2', '3', '4', '5', '6', '7', '8', '9':
 		if num, err := p.subParseInt64(p.pat[p.i:len(p.pat)], 8); err == nil {
 			ret = append(ret, rune(num))
-			p.Printf("  GrokSlashed(oct) => %+v\n", ret)
+			p.Printf("[PARS] GrokSlashed(oct) => %+v\n", ret)
 		} else {
 			p.Seek(old_i)
 			rerr = err
 		}
 	case 'g', 'a':
 		ret = append(ret, '\a')
-		p.Printf("  GrokSlashed(\\a) => %+v\n", ret)
+		p.Printf("[PARS] GrokSlashed(\\a) => %+v\n", ret)
 	case 't':
 		ret = append(ret, '\t')
-		p.Printf("  GrokSlashed(\\t) => %+v\n", ret)
+		p.Printf("[PARS] GrokSlashed(\\t) => %+v\n", ret)
 	case 'r':
 		ret = append(ret, '\r')
-		p.Printf("  GrokSlashed(\\r) => %+v\n", ret)
+		p.Printf("[PARS] GrokSlashed(\\r) => %+v\n", ret)
 	case 'n':
 		ret = append(ret, '\n')
-		p.Printf("  GrokSlashed(\\n) => %+v\n", ret)
+		p.Printf("[PARS] GrokSlashed(\\n) => %+v\n", ret)
 	case 'W':
 		inverse = true
-		p.Printf("  GrokSlashed(\\W) => !")
+		p.Printf("[PARS] GrokSlashed(\\W) => !")
 		fallthrough
 	case 'w':
 		for i := 'a'; i <= 'z'; i++ {
@@ -208,26 +208,26 @@ func (p *Parser) GrokSlashed() (ret []rune, inverse bool, rerr error) {
 			ret = append(ret, i)
 		}
 		ret = append(ret, '_')
-		p.Printf("  GrokSlashed(\\w) => %+v\n", ret)
+		p.Printf("[PARS] GrokSlashed(\\w) => %+v\n", ret)
 	case 'D':
 		inverse = true
-		p.Printf("  GrokSlashed(\\D) => !")
+		p.Printf("[PARS] GrokSlashed(\\D) => !")
 		fallthrough
 	case 'd':
 		for i := '0'; i <= '9'; i++ {
 			ret = append(ret, i)
 		}
-		p.Printf("  GrokSlashed(\\d) => %+v\n", ret)
+		p.Printf("[PARS] GrokSlashed(\\d) => %+v\n", ret)
 	case 'S':
 		inverse = true
-		p.Printf("  GrokSlashed(\\S) => !")
+		p.Printf("[PARS] GrokSlashed(\\S) => !")
 		fallthrough
 	case 's':
 		ret = append(ret, ' ', '\t', '\n', '\r')
-		p.Printf("  GrokSlashed(\\s) => %+v\n", ret)
+		p.Printf("[PARS] GrokSlashed(\\s) => %+v\n", ret)
 	default:
 		ret := []rune{p.r}
-		p.Printf("  GrokSlashed(??) => %+v\n", ret)
+		p.Printf("[PARS] GrokSlashed(??) => %+v\n", ret)
 	}
 	return
 }
@@ -256,10 +256,10 @@ func (p *Parser) Parse(pat []rune) (*RE, error) {
 	p.top = &RE{}
 	p.pat = pat
 
-	p.Printf("----------------------=: Parse(%s) :=-----------------------\n", string(pat))
+	p.Printf("[PARS] --------=: Parse(%s) :=--------\n", string(pat))
 
 	for p.Seek(0); p.i < len(p.pat); p.Consume(1) {
-		p.Printf(" -- p.pat[%d]: '%c'; |p.mode|: %d; p.mn: %d.%d\n", p.i, p.r, len(p.mode), p.m, p.n)
+		p.Printf("[PARS] -- p.pat[%d]: '%c'; |p.mode|: %d; p.mn: %d.%d\n", p.i, p.r, len(p.mode), p.m, p.n)
 
 		switch p.m {
 		case CTX_NONE:
@@ -268,15 +268,15 @@ func (p *Parser) Parse(pat []rune) (*RE, error) {
 				p.PushContext(CTX_CCLASS)
 			case '(':
 				p.Top(SUB_INIT).AppendGroup()
-				p.Printf("  APPEND GROUP\n")
+				p.Printf("[PARS] APPEND GROUP\n")
 			case ')':
-				p.Printf("  CLOSE GROUP\n")
+				p.Printf("[PARS] CLOSE GROUP\n")
 				if err := p.Top(SUB_REP).CloseGroup(); err != nil {
 					return p.formatError("unmatched closing parenthesis")
 				}
 			case '|':
 				if p.Top(SUB_INIT).AppendOrToGroupOrCreateGroup() {
-					p.Printf("  IMPLICIT TOP GROUP\n")
+					p.Printf("[PARS] IMPLICIT TOP GROUP\n")
 				}
 			case '\\':
 				p.PushContext(CTX_SLASHED)
@@ -286,7 +286,7 @@ func (p *Parser) Parse(pat []rune) (*RE, error) {
 					// character string to facilitate this, when {1,2} parsing
 					// fails, we return here and add the dumb thing as
 					// a literal.
-					p.Printf("  AppendRuneState(%c) NQUANT-RETURN\n", p.r)
+					p.Printf("[PARS] AppendRuneState(%c) NQUANT-RETURN\n", p.r)
 					p.Top(SUB_REP).AppendRuneState(p.r)
 				} else {
 					p.PushContext(CTX_NQUANT)
@@ -326,12 +326,12 @@ func (p *Parser) Parse(pat []rune) (*RE, error) {
 		case CTX_CCLASS:
 			if p.n == SUB_INIT {
 				p.m_sreg = p.Top(SUB_LHS).AppendRuneState(p.r)
-				p.Printf("  INIT CCLASS\n")
+				p.Printf("[PARS] INIT CCLASS\n")
 			}
 			switch p.r {
 			case '\\':
 				p.Consume(1)
-				p.Printf("  GrokSlashed() in cclass p.i=%d, p.r=%d, p.mn=%d.%d\n",
+				p.Printf("[PARS] GrokSlashed() in cclass p.i=%d, p.r=%d, p.mn=%d.%d\n",
 					p.i, p.r, p.m, p.n)
 				runes, inverted, err := p.GrokSlashed()
 				if err != nil {
@@ -353,17 +353,17 @@ func (p *Parser) Parse(pat []rune) (*RE, error) {
 			case ']':
 				if p.n == SUB_RHS {
 					p.m_sreg.AppendMatch('-', false)
-					p.Printf("  APPEND DASH\n")
+					p.Printf("[PARS] APPEND DASH\n")
 				}
 				p.PopContextN(false, SUB_REP)
-				p.Printf("  STOP CCLASS\n")
+				p.Printf("[PARS] STOP CCLASS\n")
 			default:
 				switch p.n {
 				case SUB_LHS:
 					switch p.r {
 					case '-':
 						p.n = SUB_RHS
-						p.Printf("  LHS->RHS\n")
+						p.Printf("[PARS] LHS->RHS\n")
 					default:
 						p.m_sreg.AppendMatch(p.r, false)
 					}
@@ -372,7 +372,7 @@ func (p *Parser) Parse(pat []rune) (*RE, error) {
 						return p.formatError(err.Error())
 					}
 					p.n = SUB_LHS
-					p.Printf("  RHS->LHS\n")
+					p.Printf("[PARS] RHS->LHS\n")
 				default:
 					return p.formatError(fmt.Sprintf("internal error, bad cclas sub-state p.mn=%d,%d", p.m, p.n))
 				}
@@ -395,7 +395,7 @@ func (p *Parser) Parse(pat []rune) (*RE, error) {
 				p.m_rreg1 = []rune{}
 				p.m_rreg2 = []rune{}
 				p.n = SUB_LHS
-				p.Printf("  INIT NQUANT LHS\n")
+				p.Printf("[PARS] INIT NQUANT LHS\n")
 			}
 			switch p.r {
 			case '0', '1', '2', '3', '4', '5', '6', '7', '8', '9':
@@ -408,7 +408,7 @@ func (p *Parser) Parse(pat []rune) (*RE, error) {
 			case ',':
 				switch p.n {
 				case SUB_LHS:
-					p.Printf("  INIT NQUANT RHS\n")
+					p.Printf("[PARS] INIT NQUANT RHS\n")
 					p.n = SUB_RHS
 				default:
 					return p.formatError("unexpected comma")
@@ -440,9 +440,9 @@ func (p *Parser) Parse(pat []rune) (*RE, error) {
 					}
 					p.PopContext(false)
 					p.Top(SUB_QTY).SetQty(a, b)
-					p.Printf("  SetQty(%d,%d) NQUANT\n", a, b)
+					p.Printf("[PARS] SetQty(%d,%d) NQUANT\n", a, b)
 				} else {
-					p.Printf("  abort NQUANT, reparse\n")
+					p.Printf("[PARS] abort NQUANT, reparse\n")
 					p.PopContext(true)
 				}
 			}

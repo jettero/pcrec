@@ -252,15 +252,6 @@ func (n *NFA) asDotTransitions(oo *numberedItems) (ret []string) {
 						}
 					}
 				}
-				// if s.Max < 0 || s.Max > 1 {
-				//     // XXX: this should be in nfa.go as an actual transition
-				//     // XXX: also, this only works for single matcher qty
-				//     //      anyway. for groups we'll need a box around the
-				//     //      group or something to mark the return back to the
-				//     //      start of the group.
-				//     ret = append(ret, fmt.Sprintf("%s -> %s [label=\"%s\"]",
-				//         nt, nt, m.Describe()))
-				// }
 			}
 		}
 	}

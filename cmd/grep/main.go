@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
 
 	"github.com/jettero/pcrec"
 	"github.com/jettero/pcrec/lib"
@@ -58,7 +59,7 @@ func search() int {
 	}
 
 	if lib.TruthyEnv("PCREC_TRACE") {
-		fmt.Print("---=: RE:\n", re.Describe(1), "\n")
+		fmt.Println("[MAIN]", strings.ReplaceAll(re.Describe(0), "\n", "\n[MAIN] "))
 	}
 
 	matched := false
@@ -84,7 +85,7 @@ func search() int {
 				return 2
 			}
 			if lib.TruthyEnv("PCREC_PP_RES") {
-				fmt.Print("---=: line: ", line)
+				fmt.Print("[MAIN] line: ", line)
 				res := re.Search(line)
 				fmt.Print(res.Describe(1))
 				fmt.Println("\n")

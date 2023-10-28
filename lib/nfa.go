@@ -22,9 +22,11 @@ type NFA struct {
 	Whence      Stateish
 }
 
+var nfaTrace bool
+
 func makeNFA(whence Stateish) (ret *NFA) {
 	ret = &NFA{Whence: whence, Transitions: make(map[*State][]*NFA)}
-	if TruthyEnv("DEBUG_NFA_TRANSITION_BUILDER") {
+	if nfaTrace {
 		fmt.Fprintf(os.Stderr, "[DNTB] makeNFA(%s) => %s\n", GetTag(whence), GetTag(ret))
 	}
 	switch typed := whence.(type) {
@@ -61,18 +63,18 @@ func (n *NFA) FindNFA(s Stateish) *NFA {
 }
 
 func (this *NFA) addTransitions(next *NFA) (leaf []*State) {
-	if TruthyEnv("DEBUG_NFA_TRANSITION_BUILDER") {
+	if nfaTrace {
 		fmt.Fprintf(os.Stderr, "[DNTB] %s.addTransitions(%s)\n", GetTag(this), FTag(next))
 	}
 	switch typed := this.Whence.(type) {
 	case *State:
-		if TruthyEnv("DEBUG_NFA_TRANSITION_BUILDER") {
+		if nfaTrace {
 			fmt.Fprintf(os.Stderr, "[DNTB]   %s -> %s\n", GetTag(typed), FTag(next))
 		}
 		if typed.Max > 0 || typed.Max < 0 {
 			this.Transitions[typed] = append(this.Transitions[typed], next)
 			if next == nil {
-				if TruthyEnv("DEBUG_NFA_TRANSITION_BUILDER") {
+				if nfaTrace {
 					fmt.Fprintf(os.Stderr, "[DNTB]   %s is a leaf\n", GetTag(typed))
 				}
 				leaf = append(leaf, typed)
@@ -91,12 +93,12 @@ func (this *NFA) addTransitions(next *NFA) (leaf []*State) {
 				for j, sti := range slist { // sti . sti . sti
 					nsti := this.FindNFA(sti)
 					if last == nil {
-						if TruthyEnv("DEBUG_NFA_TRANSITION_BUILDER") {
+						if nfaTrace {
 							fmt.Fprintf(os.Stderr, "[DNTB]   %s -> %s\n", "ε", GetTag(nsti))
 						}
 						this.Transitions[nil] = append(this.Transitions[nil], nsti)
 					} else {
-						if TruthyEnv("DEBUG_NFA_TRANSITION_BUILDER") {
+						if nfaTrace {
 							fmt.Fprintf(os.Stderr, "[DNTB]   %s.%s[%d,%d].%s => %s\n",
 								GetTag(this), GetTag(typed), i, j, GetTag(last), GetTag(nsti))
 						}
@@ -106,13 +108,13 @@ func (this *NFA) addTransitions(next *NFA) (leaf []*State) {
 					}
 					last = nsti
 				}
-				if TruthyEnv("DEBUG_NFA_TRANSITION_BUILDER") {
+				if nfaTrace {
 					fmt.Fprintf(os.Stderr, "[DNTB]   %s.%s.%s => %s\n",
 						GetTag(this), GetTag(typed), GetTag(last), FTag(next))
 				}
 				for _, item := range last.addTransitions(next) {
 					leaf = append(leaf, item)
-					if TruthyEnv("DEBUG_NFA_TRANSITION_BUILDER") {
+					if nfaTrace {
 						fmt.Fprintf(os.Stderr, "[DNTB]   %s ~> %s\n", GetTag(item), GetTag(this))
 					}
 					nitem := this.FindNFA(item)
@@ -125,9 +127,12 @@ func (this *NFA) addTransitions(next *NFA) (leaf []*State) {
 }
 
 func BuildNFA(r *RE) (ret *NFA) {
+	nfaTrace = TruthyEnv("PCREC_TRACE") || TruthyEnv("NFA_TRACE")
+	defer func() { nfaTrace = false }()
+
 	var last *NFA
 	var this *NFA
-	if TruthyEnv("DEBUG_NFA_TRANSITION_BUILDER") {
+	if nfaTrace {
 		fmt.Fprintf(os.Stderr, "[DNTB] BuildNFA :: start\n")
 	}
 	for _, stateish := range r.States {
@@ -139,11 +144,11 @@ func BuildNFA(r *RE) (ret *NFA) {
 		}
 		last = this
 	}
-	if TruthyEnv("DEBUG_NFA_TRANSITION_BUILDER") {
+	if nfaTrace {
 		fmt.Fprintf(os.Stderr, "[DNTB] BuildNFA :: add accept\n")
 	}
 	last.addTransitions(nil)
-	if TruthyEnv("DEBUG_NFA_TRANSITION_BUILDER") {
+	if nfaTrace {
 		fmt.Fprintf(os.Stderr, "\n")
 	}
 	return

@@ -27,7 +27,7 @@ func (r *RE) SearchRunes(candidate []rune) (res *REsult) {
 }
 
 func (nfa *NFA) SearchRunes(candidate []rune, res *REsult) {
-	searchTrace = TruthyEnv("PCREC_TRACE") || TruthyEnv("RE_SEARCH_TRACE")
+	searchTrace = TruthyEnv("PCREC_TRACE") || TruthyEnv("SEARCH_TRACE")
 	defer func() { searchTrace = false }()
 }
 
