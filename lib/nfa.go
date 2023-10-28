@@ -148,3 +148,10 @@ func BuildNFA(r *RE) (ret *NFA) {
 	}
 	return
 }
+
+func (r *RE) NFA() *NFA {
+	if r.nfa == nil {
+		r.nfa = BuildNFA(r)
+	}
+	return r.nfa
+}

@@ -31,13 +31,6 @@ func (nfa *NFA) SearchRunes(candidate []rune, res *REsult) {
 	defer func() { searchTrace = false }()
 }
 
-func (r *RE) NFA() *NFA {
-	if r.nfa == nil {
-		r.nfa = BuildNFA(r)
-	}
-	return r.nfa
-}
-
 func (m *Matcher) Matches(r rune) bool {
 	if m.Any {
 		return true
