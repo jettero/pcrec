@@ -22,17 +22,18 @@ func (r *RE) SearchRunes(candidate []rune) (res *REsult) {
 func (nfa *NFA) continueSR(candidate []rune, res *REsult) {
 	for s, nl := range nfa.Transitions {
 		if searchTrace {
-			fmt.Printf("[SRCH] %s.Transitions[%s] => {%s}\n",
-				GetTag(nfa), GetTag(s), GetFTagList(nl))
+			fmt.Printf("[SRCH] %s.Transitions[%s] => {%s}\n[SRCH]    candidate=\"%s\"\n",
+				GetTag(nfa), GetTag(s), GetFTagList(nl),
+				PrintableizeRunes(candidate, 20, true))
 		}
-		if s.Matches(candidate[0]) {
+		if _, ub, matched := s.Matches(candidate); matched {
 			for _, n := range nl {
 				if n == nil {
 					res.Matched = true
 					fmt.Printf("[SRCH]    FIN\n")
 					break
 				}
-				if n.continueSR(candidate[1:], res); res.Matched {
+				if n.continueSR(candidate[ub:], res); res.Matched {
 					break
 				}
 			}
@@ -65,22 +66,29 @@ func (m *Matcher) Matches(r rune) bool {
 	return m.Inverse != (m.First <= r && r <= m.Last) // inverse ^ between
 }
 
-func (s *State) Matches(r rune) bool {
+func (s *State) Matches(candidate []rune) (lb int, ub int, match bool) {
+	var q int
 	var head string
 	if searchTrace {
 		head = fmt.Sprintf("[SRCH]    %s:", GetTag(s))
 	}
-	for _, m := range s.Match {
-		if m.Matches(r) {
-			if searchTrace {
-				// mstr := strings.ReplaceAll(s.Describe(0), "\n", "\n" + head)
-				fmt.Printf("%s => matched(%s)\n", head, Printableize(r, true))
+qty:
+	for q = 0; q < len(candidate) && (s.Max < 0 || q <= s.Max); q++ {
+		for _, m := range s.Match {
+			if m.Matches(candidate[q]) {
+				continue qty
 			}
-			return true
 		}
+		break
+	}
+	if q >= s.Min {
+		lb = s.Min
+		ub = q
+		match = true
 	}
 	if searchTrace {
-		fmt.Printf("%s => fail(%s)\n", head, Printableize(r, true))
+		fmt.Printf("%s => %v \"%s\" {%d,%d}\n", head, match,
+			PrintableizeRunes(candidate[:q], 0, true), lb, ub)
 	}
-	return false
+	return
 }

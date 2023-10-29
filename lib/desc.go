@@ -9,14 +9,14 @@ import (
 
 const INDENT string = "  "
 
-func PrintableizeRunes(rz []rune, max int) string {
+func PrintableizeRunes(rz []rune, maxShown int, loudWhitespace bool) string {
 	var ret []string
 	for i, r := range rz {
-		if max > 0 && i >= max {
+		if maxShown > 0 && i >= maxShown {
 			ret = append(ret, " …")
 			break
 		}
-		ret = append(ret, Printableize(r, false))
+		ret = append(ret, Printableize(r, loudWhitespace))
 	}
 	return strings.Join(ret, "")
 }
