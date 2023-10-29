@@ -42,14 +42,6 @@ func makeNFA(whence Stateish) (ret *NFA) {
 	return
 }
 
-func FTag(item interface{}) (t string) {
-	t = GetTag(item)
-	if t[len(t)-1] == '?' {
-		return "F"
-	}
-	return
-}
-
 func (n *NFA) FindNFA(s Stateish) *NFA {
 	if n.Whence == s {
 		return n
@@ -64,12 +56,13 @@ func (n *NFA) FindNFA(s Stateish) *NFA {
 
 func (this *NFA) addTransitions(next *NFA) (leaf []*State) {
 	if nfaTrace {
-		fmt.Fprintf(os.Stderr, "[DNTB] %s.addTransitions(%s)\n", GetTag(this), FTag(next))
+		fmt.Fprintf(os.Stderr, "[DNTB] %s.addTransitions(%s)\n",
+			GetTag(this), GetFTag(next))
 	}
 	switch typed := this.Whence.(type) {
 	case *State:
 		if nfaTrace {
-			fmt.Fprintf(os.Stderr, "[DNTB]   %s -> %s\n", GetTag(typed), FTag(next))
+			fmt.Fprintf(os.Stderr, "[DNTB]   %s -> %s\n", GetTag(typed), GetFTag(next))
 		}
 		if typed.Max > 0 || typed.Max < 0 {
 			this.Transitions[typed] = append(this.Transitions[typed], next)
@@ -110,7 +103,7 @@ func (this *NFA) addTransitions(next *NFA) (leaf []*State) {
 				}
 				if nfaTrace {
 					fmt.Fprintf(os.Stderr, "[DNTB]   %s.%s.%s => %s\n",
-						GetTag(this), GetTag(typed), GetTag(last), FTag(next))
+						GetTag(this), GetTag(typed), GetTag(last), GetFTag(next))
 				}
 				for _, item := range last.addTransitions(next) {
 					leaf = append(leaf, item)

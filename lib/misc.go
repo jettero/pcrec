@@ -103,10 +103,34 @@ func makeNumberedItems() *numberedItems {
 
 var GLOBAL_UN *numberedItems = makeNumberedItems()
 
+func GetTagList[T any](things []T) string {
+	var ret []string
+	for _, thing := range things {
+		ret = append(ret, GetTag(thing))
+	}
+	return strings.Join(ret, ", ")
+}
+
 func GetTag(thing interface{}) string {
 	return GLOBAL_UN.get(thing)
 }
 
 func TagDefined(thing interface{}) bool {
 	return GLOBAL_UN.in(thing)
+}
+
+func GetFTagList[T any](things []T) string {
+	var ret []string
+	for _, thing := range things {
+		ret = append(ret, GetFTag(thing))
+	}
+	return strings.Join(ret, ", ")
+}
+
+func GetFTag(item interface{}) (t string) {
+	t = GetTag(item)
+	if t[len(t)-1] == '?' {
+		return "F"
+	}
+	return
 }

@@ -2,7 +2,6 @@ package lib
 
 import (
 	"fmt"
-	"strings"
 )
 
 var searchTrace bool
@@ -17,33 +16,46 @@ func (r *RE) Search(candidate string) (ret *REsult) {
 }
 
 func (r *RE) SearchRunes(candidate []rune) (res *REsult) {
-	res = &REsult{}
-	r.NFA().SearchRunes(candidate, res, false)
-	return res
+	return r.NFA().SearchRunes(candidate, false)
 }
 
-func (nfa *NFA) SearchRunes(candidate []rune, res *REsult, anchored bool) {
+func (nfa *NFA) continueSR(candidate []rune, res *REsult) {
+	for s, nl := range nfa.Transitions {
+		if searchTrace {
+			fmt.Printf("[SRCH] %s.Transitions[%s] => {%s}\n",
+				GetTag(nfa), GetTag(s), GetFTagList(nl))
+		}
+		if s.Matches(candidate[0]) {
+			for _, n := range nl {
+				if n == nil {
+					res.Matched = true
+					fmt.Printf("[SRCH]    FIN\n")
+					break
+				}
+				if n.continueSR(candidate[1:], res); res.Matched {
+					break
+				}
+			}
+		}
+	}
+}
+
+func (nfa *NFA) SearchRunes(candidate []rune, anchored bool) (res *REsult) {
 	searchTrace = TruthyEnv("PCREC_TRACE") || TruthyEnv("SEARCH_TRACE")
 	defer func() { searchTrace = false }()
+
+	res = &REsult{}
 
 	if searchTrace {
 		fmt.Printf("[SRCH] --------=: search :=--------\n")
 	}
 
 	for cpos := 0; !res.Matched && cpos < len(candidate); cpos++ {
-		for s, nl := range nfa.Transitions {
-			for _, n := range nl {
-				if searchTrace {
-					fmt.Printf("[SRCH] cpos=%d nfa=%s [s=%s]=> n=%s\n",
-						cpos, GetTag(nfa), GetTag(s), GetTag(n))
-				}
-			}
-		}
-
-		if anchored {
+		if nfa.continueSR(candidate[cpos:], res); res.Matched || anchored {
 			break
 		}
 	}
+	return
 }
 
 func (m *Matcher) Matches(r rune) bool {
@@ -54,19 +66,21 @@ func (m *Matcher) Matches(r rune) bool {
 }
 
 func (s *State) Matches(r rune) bool {
+	var head string
+	if searchTrace {
+		head = fmt.Sprintf("[SRCH]    %s:", GetTag(s))
+	}
 	for _, m := range s.Match {
-		if searchTrace {
-			fmt.Printf("[SRCH] ** \"%s\"", strings.ReplaceAll(s.Describe(0), "\n", "\n[SRCH] "))
-		}
 		if m.Matches(r) {
 			if searchTrace {
-				fmt.Printf("[SRCH] => matched(%s)\n", Printableize(r, true))
+				// mstr := strings.ReplaceAll(s.Describe(0), "\n", "\n" + head)
+				fmt.Printf("%s => matched(%s)\n", head, Printableize(r, true))
 			}
 			return true
 		}
 	}
 	if searchTrace {
-		fmt.Printf("[SRCH] => fail(%s)\n", Printableize(r, true))
+		fmt.Printf("%s => fail(%s)\n", head, Printableize(r, true))
 	}
 	return false
 }
