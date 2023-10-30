@@ -22,9 +22,15 @@ func (r *RE) SearchRunes(candidate []rune) (res *REsult) {
 func (nfa *NFA) continueSR(candidate []rune, res *REsult) {
 	for s, nl := range nfa.Transitions {
 		if searchTrace {
-			fmt.Printf("[SRCH] %s.Transitions[%s] => {%s}\n[SRCH]    candidate=\"%s\"\n",
-				GetTag(nfa), GetTag(s), GetFTagList(nl),
-				PrintableizeRunes(candidate, 20, true))
+			printableRunes := fmt.Sprintf("\"%s\"", PrintableizeRunes(candidate, 20, true))
+			if len(candidate) < 1 {
+				printableRunes = "<EOL>"
+			}
+			fmt.Printf("[SRCH] %s.Transitions[%s] => {%s}\n[SRCH]    candidate=%s\n",
+				GetTag(nfa), GetTag(s), GetFTagList(nl), printableRunes)
+		}
+		if len(candidate) < 1 {
+			break
 		}
 		if _, ub, matched := s.Matches(candidate); matched {
 			for _, n := range nl {
