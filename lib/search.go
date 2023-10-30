@@ -36,11 +36,12 @@ func (nfa *NFA) continueSR(candidate []rune, res *REsult) {
 			for _, n := range nl {
 				if n == nil {
 					res.Matched = true
-					fmt.Printf("[SRCH]    FIN\n")
-					break
+					fmt.Printf("[SRCH]    %s.Transitions[%s]: FIN\n", GetTag(nfa), GetTag(s))
+					return
 				}
 				if n.continueSR(candidate[ub:], res); res.Matched {
-					break
+					fmt.Printf("[SRCH]    %s.Transitions[%s]: ↑\n", GetTag(nfa), GetTag(s))
+					return
 				}
 			}
 		}
