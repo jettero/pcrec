@@ -37,7 +37,7 @@ func (nfa *NFA) continueSR(candidate []rune, res *REsult) {
 	cstr := PrintableizeRunes(candidate, 20, true)
 	for s, nl := range nfa.Transitions {
 		nlftag := GetFTagList(nl)
-		stag := GetTag(s)
+		stag := GetFTag(s)
 		if searchTrace {
 			fmt.Fprintf(os.Stderr, "[SRCH] %s%s.Transitions[%s] => {%s} candidate=\"%s\"\n",
 				si(0), nfatag, stag, nlftag, cstr)
@@ -51,17 +51,23 @@ func (nfa *NFA) continueSR(candidate []rune, res *REsult) {
 					}
 					if n == nfa && b == 0 {
 						// use si(1) because we don't actually descend
-						fmt.Fprintf(os.Stderr, "[SRCH] %sboring zero-width self transition\n", si(1))
+						if searchTrace {
+							fmt.Fprintf(os.Stderr, "[SRCH] %sboring zero-width self transition\n", si(1))
+						}
 						continue
 					}
 					if n == nil {
 						// we don't actually transition to F, so use s(1) to show the pretend descent
 						res.Matched = true
-						fmt.Fprintf(os.Stderr, "[SRCH] %sFIN\n", si(1))
+						if searchTrace {
+							fmt.Fprintf(os.Stderr, "[SRCH] %sFIN\n", si(1))
+						}
 						return
 					}
 					if n.continueSR(candidate[b:], res); res.Matched {
-						fmt.Fprintf(os.Stderr, "[SRCH] %s%s.Transitions[%s]: FIN\n", si(0), GetTag(nfa), GetTag(s))
+						if searchTrace {
+							fmt.Fprintf(os.Stderr, "[SRCH] %s%s.Transitions[%s]: FIN\n", si(0), GetTag(nfa), GetTag(s))
+						}
 						return
 					}
 				}
@@ -98,6 +104,15 @@ func (m *Matcher) Matches(r rune) bool {
 
 func (s *State) Matches(candidate []rune) (lb int, ub int, match bool) {
 	var q int
+	if s == nil {
+		lb = 0
+		ub = 0
+		match = true
+		if searchTrace {
+			fmt.Fprintf(os.Stderr, "[SRCH] %sε; (\"\") => true, {0,0}\n", si(0))
+		}
+		return
+	}
 qty:
 	for q = 0; q < len(candidate) && (s.Max < 0 || q <= s.Max); q++ {
 		for _, m := range s.Match {

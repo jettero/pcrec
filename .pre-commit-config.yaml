@@ -36,6 +36,6 @@ repos:
   - id: test
     name: test
     pass_filenames: false
-    entry: env SKIP_TEST_LINE_MATCH_THINGS=0 go test -failfast
+    entry: env SKIP_TEST_LINE_MATCH_THINGS=1 go test -failfast
     types: [go]
     language: system

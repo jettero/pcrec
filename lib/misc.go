@@ -129,8 +129,11 @@ func GetFTagList[T any](things []T) string {
 
 func GetFTag(item interface{}) (t string) {
 	t = GetTag(item)
-	if t[len(t)-1] == '?' {
-		return "F"
+	switch t {
+	case "N?":
+		t = "F"
+	case "S?":
+		t = "ε"
 	}
 	return
 }
