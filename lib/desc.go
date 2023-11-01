@@ -56,7 +56,14 @@ func NegIsInfinite(i int) string {
 
 func Qstr(min int, max int, greedy bool) string {
 	if min != max {
-		qstr := fmt.Sprintf("{%d,%s}", min, NegIsInfinite(max))
+		var qstr string
+		if min == 0 && max < 0 {
+			qstr = "*"
+		} else if min == 1 && max < 0 {
+			qstr = "+"
+		} else {
+			qstr = fmt.Sprintf("{%d,%s}", min, NegIsInfinite(max))
+		}
 		if !greedy {
 			qstr += "?"
 		}
@@ -101,20 +108,20 @@ func (m *Matcher) Describe() string {
 	if m.Any {
 		if m.Inverse {
 			// the parser shouldn't actually produce this ... right?
-			return "[«nil»]"
+			return "ε"
 		}
-		return "[«any»]"
+		return "«any»"
 	}
-	var ret string = "["
 	if m.Inverse {
-		ret += "^"
+		ret := "[^" + Printableize(m.First, true)
+		if m.First < m.Last {
+			ret += "-" + Printableize(m.Last, true)
+		}
+		return ret + "]"
+	} else if m.First == m.Last {
+		return Printableize(m.First, true)
 	}
-	ret += Printableize(m.First, true)
-	if m.First < m.Last {
-		ret += "-" + Printableize(m.Last, true)
-	}
-	ret += "]"
-	return ret
+	return "[" + Printableize(m.First, true) + "-" + Printableize(m.Last, true) + "]"
 }
 
 func (r *REsult) Describe(indent int) string {
@@ -135,8 +142,24 @@ func (r *REsult) Describe(indent int) string {
 	return ret + "\n"
 }
 
+func (g *Group) short() string {
+	var istr []string
+	for _, items := range g.States {
+		var iistr []string
+		for _, item := range items {
+			iistr = append(iistr, item.short())
+		}
+		istr = append(istr, strings.Join(iistr, "."))
+	}
+	flags := ""
+	if !g.Capture {
+		flags += "?:"
+	}
+	return fmt.Sprintf("(%s%s)%s", flags, strings.Join(uniqueStrings(istr), "|"), Qstr(g.Min, g.Max, g.Greedy))
+}
+
 func (s *State) short() string {
-	return GetTag(s)
+	return GetTag(s) + Qstr(s.Min, s.Max, s.Greedy)
 }
 
 func (g *Group) medium() string {
@@ -179,28 +202,13 @@ func (s *State) Describe(indent int) string {
 	return fmt.Sprintf("%sS%s => %s", istr, qstr, sstr)
 }
 
-func (g *Group) short() string {
-	var istr []string
-	for _, items := range g.States {
-		var iistr []string
-		for _, item := range items {
-			iistr = append(iistr, item.short())
-		}
-		istr = append(istr, strings.Join(iistr, "."))
-	}
-	flags := ""
-	if !g.Capture {
-		flags += "?:"
-	}
-	return fmt.Sprintf("(%s%s)%s", flags, strings.Join(uniqueStrings(istr), "|"), Qstr(g.Min, g.Max, g.Greedy))
-}
-
 func (n *NFA) asDotNodes(oo *numberedItems) (ret []string) {
 	if !oo.onlyOnce(n) {
 		return
 	}
 	nt := GetTag(n)
-	ret = append(ret, fmt.Sprintf("%s [label=\"%s\"]", nt, n.Whence.medium()))
+	ws := n.Whence.short()
+	ret = append(ret, fmt.Sprintf("%s [label=\"%s :: %s\"]", nt, nt, ws))
 	for _, ni := range n.children {
 		if ni == nil {
 			continue
@@ -237,16 +245,17 @@ func (n *NFA) asDotTransitions(oo *numberedItems) (ret []string) {
 			}
 			continue
 		}
-		for _, m := range s.Match {
+		for i, m := range s.Match {
 			// XXX: this is slightly spurious since it's going to be wrong
 			// for the case of [\D\W] or similar.
 			if s.Max != 0 {
-				for _, nfa := range nfaSlice {
+				for j, nfa := range nfaSlice {
 					if nfa == nil {
-						ret = append(ret, fmt.Sprintf("%s -> F [label=\"%s\"]",
-							nt, m.Describe()))
+						ret = append(ret, fmt.Sprintf("%s -> F [label=\"%d.%s.%d: %s\"]",
+							nt, j, GetTag(s), i, m.Describe()))
 					} else {
-						ret = append(ret, fmt.Sprintf("%s -> %s [label=\"%s\"]", nt, GetTag(nfa), m.Describe()))
+						ret = append(ret, fmt.Sprintf("%s -> %s [label=\"%d.%s.%d: %s\"]",
+							nt, GetTag(nfa), j, GetTag(s), i, m.Describe()))
 						for _, line := range nfa.asDotTransitions(oo) {
 							ret = append(ret, line)
 						}
