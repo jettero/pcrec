@@ -20,6 +20,7 @@ type NFA struct {
 	children    []*NFA
 	Transitions map[*State][]*NFA
 	Whence      Stateish
+	Capture     bool
 }
 
 var nfaTrace bool
@@ -31,6 +32,9 @@ func makeNFA(whence Stateish) (ret *NFA) {
 	}
 	switch typed := whence.(type) {
 	case *Group:
+		if typed.Capture {
+			ret.Capture = true
+		}
 		for _, slist := range typed.States {
 			for _, sti := range slist {
 				if !TagDefined(sti) {
