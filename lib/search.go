@@ -66,7 +66,7 @@ func (nfa *NFA) continueSR(candidate []rune, res *REsult) {
 					}
 					if n.continueSR(candidate[b:], res); res.Matched {
 						if searchTrace {
-							fmt.Fprintf(os.Stderr, "[SRCH] %s%s.Transitions[%s]: FIN\n", si(0), GetTag(nfa), GetTag(s))
+							fmt.Fprintf(os.Stderr, "[SRCH] %s%s.Transitions[%s]: FIN\n", si(0), GetTag(nfa), stag)
 						}
 						return
 					}
