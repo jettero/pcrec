@@ -34,6 +34,8 @@ func (nfa *NFA) continueSR(candidate []rune, res *REsult) {
 		fmt.Fprintf(os.Stderr, "[SRCH] %s%s <EOL>\n", si(0), nfatag)
 		return
 	}
+	if nfa.Capture {
+	}
 	cstr := PrintableizeRunes(candidate, 20, true)
 	for s, nl := range nfa.Transitions {
 		nlftag := GetFTagList(nl)

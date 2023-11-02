@@ -17,15 +17,16 @@ type NFA struct {
 	* and prolly not quite like the above.                  *
 	********************************************************/
 
-	children    []*NFA
-	Transitions map[*State][]*NFA
-	Whence      Stateish
-	Capture     bool
+	children     []*NFA
+	Transitions  map[*State][]*NFA
+	Whence       Stateish
+	Capture      bool
+	CaptureGroup int
 }
 
 var nfaTrace bool
 
-func makeNFA(whence Stateish) (ret *NFA) {
+func makeNFA(whence Stateish, gctr *int) (ret *NFA) {
 	ret = &NFA{Whence: whence, Transitions: make(map[*State][]*NFA)}
 	if nfaTrace {
 		fmt.Fprintf(os.Stderr, "[DNTB] makeNFA(%s) => %s\n", GetTag(whence), GetTag(ret))
@@ -34,11 +35,15 @@ func makeNFA(whence Stateish) (ret *NFA) {
 	case *Group:
 		if typed.Capture {
 			ret.Capture = true
+			ret.CaptureGroup = *gctr
+			*gctr++
+			fmt.Fprintf(os.Stderr, "[DNTB]   new capture group: %d\n",
+				ret.CaptureGroup+1)
 		}
 		for _, slist := range typed.States {
 			for _, sti := range slist {
 				if !TagDefined(sti) {
-					ret.children = append(ret.children, makeNFA(sti))
+					ret.children = append(ret.children, makeNFA(sti, gctr))
 				}
 			}
 		}
@@ -127,13 +132,15 @@ func BuildNFA(r *RE) (ret *NFA) {
 	nfaTrace = TruthyEnv("PCREC_TRACE") || TruthyEnv("NFA_TRACE")
 	defer func() { nfaTrace = false }()
 
+	var gctr int
+
 	var last *NFA
 	var this *NFA
 	if nfaTrace {
 		fmt.Fprintf(os.Stderr, "[DNTB] BuildNFA :: start\n")
 	}
 	for _, stateish := range r.States {
-		this = makeNFA(stateish)
+		this = makeNFA(stateish, &gctr)
 		if ret == nil {
 			ret = this
 		} else {
