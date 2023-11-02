@@ -24,3 +24,11 @@ fixup fu:
 clean-test ct:
 	@make --no-print-directory fixup
 	@make --no-print-directory test
+
+update:
+	go get -u ./...
+	go mod tidy
+	pre-commit clean
+	pre-commit gc
+	pre-commit autoupdate
+
