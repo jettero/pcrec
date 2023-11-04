@@ -37,8 +37,9 @@ func makeNFA(whence Stateish, gctr *int) (ret *NFA) {
 			ret.Capture = true
 			ret.CaptureGroup = *gctr
 			*gctr++
-			fmt.Fprintf(os.Stderr, "[DNTB]   new capture group: %d\n",
-				ret.CaptureGroup+1)
+			if nfaTrace {
+				fmt.Fprintf(os.Stderr, "[DNTB]   new capture group: %d\n", ret.CaptureGroup+1)
+			}
 		}
 		for _, slist := range typed.States {
 			for _, sti := range slist {

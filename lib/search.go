@@ -31,7 +31,9 @@ func (nfa *NFA) continueSR(candidate []rune, res *REsult) {
 	defer func() { searchIndent -= 1 }()
 	nfatag := GetTag(nfa)
 	if len(candidate) < 1 {
-		fmt.Fprintf(os.Stderr, "[SRCH] %s%s <EOL>\n", si(0), nfatag)
+		if searchTrace {
+			fmt.Fprintf(os.Stderr, "[SRCH] %s%s <EOL>\n", si(0), nfatag)
+		}
 		return
 	}
 	if nfa.Capture {
@@ -79,7 +81,7 @@ func (nfa *NFA) continueSR(candidate []rune, res *REsult) {
 }
 
 func (nfa *NFA) SearchRunes(candidate []rune, anchored bool) (res *REsult) {
-	searchTrace = TruthyEnv("PCREC_TRACE") || TruthyEnv("SEARCH_TRACE")
+	searchTrace = TruthyEnv("PCREC_TRACE") || TruthyEnv("PCREC_SEARCH_TRACE")
 	defer func() { searchTrace = false }()
 
 	res = &REsult{}
