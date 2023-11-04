@@ -37,6 +37,12 @@ func (nfa *NFA) continueSR(candidate []rune, res *REsult) {
 		return
 	}
 	if nfa.Capture {
+		for len(res.Groups) <= nfa.CaptureGroup {
+			if searchTrace {
+				fmt.Fprintf(os.Stderr, "[SRCH] capture group: %d\n", len(res.Groups)+1)
+			}
+			res.Groups = append(res.Groups, []rune{})
+		}
 	}
 	cstr := PrintableizeRunes(candidate, 20, true)
 	for s, nl := range nfa.Transitions {
@@ -54,16 +60,16 @@ func (nfa *NFA) continueSR(candidate []rune, res *REsult) {
 							si(0), nfatag, stag, GetFTag(n), lb, ub, b)
 					}
 					if n == nfa && b == 0 {
-						// use si(1) because we don't actually descend
 						if searchTrace {
+							// use si(1) because we don't actually descend
 							fmt.Fprintf(os.Stderr, "[SRCH] %sboring zero-width self transition\n", si(1))
 						}
 						continue
 					}
 					if n == nil {
-						// we don't actually transition to F, so use s(1) to show the pretend descent
 						res.Matched = true
 						if searchTrace {
+							// we don't actually transition to F, so use s(1) to show the pretend descent
 							fmt.Fprintf(os.Stderr, "[SRCH] %sFIN\n", si(1))
 						}
 						return
