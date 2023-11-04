@@ -133,7 +133,7 @@ func (r *REsult) Describe(indent int) string {
 		for i, item := range r.Groups {
 			var sitem string = "nil"
 			if item != nil {
-				sitem = fmt.Sprintf("\"%s\"", string(*item))
+				sitem = fmt.Sprintf("\"%s\"", string(item))
 			}
 			ret += fmt.Sprintf("\n%sGroup(%d): %v", jstr, i+1, sitem)
 		}
