@@ -10,7 +10,7 @@ var searchTrace bool
 var searchIndent int
 
 type REsult struct { // <--- I think this is hilarious, sorry
-	Groups  []*[]rune
+	Groups  [][]rune
 	Matched bool
 }
 
