@@ -36,14 +36,6 @@ func (nfa *NFA) continueSR(candidate []rune, res *REsult) {
 		}
 		return
 	}
-	if nfa.Capture {
-		for len(res.Groups) <= nfa.CaptureGroup {
-			if searchTrace {
-				fmt.Fprintf(os.Stderr, "[SRCH] capture group: %d\n", len(res.Groups)+1)
-			}
-			res.Groups = append(res.Groups, []rune{})
-		}
-	}
 	cstr := PrintableizeRunes(candidate, 20, true)
 	for s, nl := range nfa.Transitions {
 		nlftag := GetFTagList(nl)
@@ -52,8 +44,23 @@ func (nfa *NFA) continueSR(candidate []rune, res *REsult) {
 			fmt.Fprintf(os.Stderr, "[SRCH] %s%s.Transitions[%s] => {%s} candidate=\"%s\"\n",
 				si(0), nfatag, stag, nlftag, cstr)
 		}
+		if nfa.Capture {
+			for len(res.Groups) <= nfa.CaptureGroup {
+				res.Groups = append(res.Groups, []rune{ })
+			}
+			if searchTrace {
+				fmt.Fprintf(os.Stderr, "[SRCH] %sinit capture-group $%d\n", si(0), nfa.CaptureGroup+1)
+			}
+		}
 		if lb, ub, matched := s.Matches(candidate); matched {
 			for b := ub; b >= lb; b-- {
+				if nfa.Capture {
+					res.Groups[nfa.CaptureGroup] = candidate[:b]
+					if searchTrace {
+						fmt.Fprintf(os.Stderr, "[SRCH] %sset $%d to \"%s\"\n",
+							si(0), nfa.CaptureGroup+1, PrintableizeRunes(res.Groups[nfa.CaptureGroup], 0, true))
+					}
+				}
 				for _, n := range nl {
 					if searchTrace {
 						fmt.Fprintf(os.Stderr, "[SRCH] %s%s.%s.%s {%d,%d}:%d\n",
@@ -119,7 +126,7 @@ func (s *State) Matches(candidate []rune) (lb int, ub int, match bool) {
 		ub = 0
 		match = true
 		if searchTrace {
-			fmt.Fprintf(os.Stderr, "[SRCH] %sε; (\"\") => true, {0,0}\n", si(0))
+			fmt.Fprintf(os.Stderr, "[SRCH] %sε => true, {0,0}\n", si(0))
 		}
 		return
 	}
@@ -138,8 +145,7 @@ qty:
 		match = true
 	}
 	if searchTrace {
-		fmt.Fprintf(os.Stderr, "[SRCH] %s%s; (\"%s\") => %v, {%d, %d}\n",
-			si(0), s.medium(), PrintableizeRunes(candidate[:q], 0, true), match, lb, ub)
+		fmt.Fprintf(os.Stderr, "[SRCH] %s%s => %v, {%d, %d}\n", si(0), s.medium(), match, lb, ub)
 	}
 	return
 }
