@@ -17,17 +17,22 @@ type NFA struct {
 	* and prolly not quite like the above.                  *
 	********************************************************/
 
-	children     []*NFA
-	Transitions  map[*State][]*NFA
+	Children     []*NFA
+	Transitions  map[*State][]*NFATrans
 	Whence       Stateish
 	Capture      bool
 	CaptureGroup int
 }
 
+type NFATrans struct {
+	Capture []int
+	NFA *NFA
+}
+
 var nfaTrace bool
 
 func makeNFA(whence Stateish, gctr *int) (ret *NFA) {
-	ret = &NFA{Whence: whence, Transitions: make(map[*State][]*NFA)}
+	ret = &NFA{Whence: whence, Transitions: make(map[*State][]*NFATrans)}
 	if nfaTrace {
 		fmt.Fprintf(os.Stderr, "[DNTB] makeNFA(%s) => %s\n", GetTag(whence), GetTag(ret))
 	}
@@ -44,7 +49,7 @@ func makeNFA(whence Stateish, gctr *int) (ret *NFA) {
 		for _, slist := range typed.States {
 			for _, sti := range slist {
 				if !TagDefined(sti) {
-					ret.children = append(ret.children, makeNFA(sti, gctr))
+					ret.Children = append(ret.Children, makeNFA(sti, gctr))
 				}
 			}
 		}
@@ -56,7 +61,7 @@ func (n *NFA) FindNFA(s Stateish) *NFA {
 	if n.Whence == s {
 		return n
 	}
-	for _, item := range n.children {
+	for _, item := range n.Children {
 		if item.Whence == s {
 			return item
 		}
@@ -75,7 +80,7 @@ func (this *NFA) addTransitions(next *NFA) (leaf []*State) {
 			fmt.Fprintf(os.Stderr, "[DNTB]   %s -> %s\n", GetTag(typed), GetFTag(next))
 		}
 		if typed.Max > 0 || typed.Max < 0 {
-			this.Transitions[typed] = append(this.Transitions[typed], next)
+			this.Transitions[typed] = append(this.Transitions[typed], &NFATrans{ NFA: next })
 			if next == nil {
 				if nfaTrace {
 					fmt.Fprintf(os.Stderr, "[DNTB]   %s is a leaf\n", GetTag(typed))
@@ -83,7 +88,7 @@ func (this *NFA) addTransitions(next *NFA) (leaf []*State) {
 				leaf = append(leaf, typed)
 			}
 			if typed.Max < 0 || typed.Max > 1 {
-				this.Transitions[typed] = append(this.Transitions[typed], this)
+				this.Transitions[typed] = append(this.Transitions[typed], &NFATrans{ NFA: this })
 			}
 		}
 	case *Group:
@@ -99,7 +104,7 @@ func (this *NFA) addTransitions(next *NFA) (leaf []*State) {
 						if nfaTrace {
 							fmt.Fprintf(os.Stderr, "[DNTB]   %s -> %s\n", "ε", GetTag(nsti))
 						}
-						this.Transitions[nil] = append(this.Transitions[nil], nsti)
+						this.Transitions[nil] = append(this.Transitions[nil], &NFATrans{ NFA: nsti })
 					} else {
 						if nfaTrace {
 							fmt.Fprintf(os.Stderr, "[DNTB]   %s.%s[%d,%d].%s => %s\n",
@@ -121,7 +126,7 @@ func (this *NFA) addTransitions(next *NFA) (leaf []*State) {
 						fmt.Fprintf(os.Stderr, "[DNTB]   %s ~> %s\n", GetTag(item), GetTag(this))
 					}
 					nitem := this.FindNFA(item)
-					nitem.Transitions[item] = append(nitem.Transitions[item], this)
+					nitem.Transitions[item] = append(nitem.Transitions[item], &NFATrans{ NFA: this })
 				}
 			}
 		}

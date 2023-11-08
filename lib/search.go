@@ -10,9 +10,8 @@ var searchTrace bool
 var searchIndent int
 
 type REsult struct { // <--- I think this is hilarious, sorry
-	Groups         [][]rune
-	Matched        bool
-	activeCaptures []int
+	Groups  [][]rune
+	Matched bool
 }
 
 func (r *RE) Search(candidate string) (ret *REsult) {
@@ -27,76 +26,42 @@ func si(i int) string {
 	return strings.Repeat(" ", searchIndent+i)
 }
 
-func (res *REsult) setCaptureActive(v int) {
-	for _, c := range res.activeCaptures {
-		if c == v {
-			return
-		}
+func xlateTrans(ntrl []*NFATrans) (ret []*NFA) {
+	for _, ntr := range ntrl {
+		ret = append(ret, ntr.NFA)
 	}
-	for len(res.Groups) <= v {
-		res.Groups = append(res.Groups, []rune{})
-		if searchTrace {
-			fmt.Fprintf(os.Stderr, "[SRCH] %sinit capture-group $%d\n", si(0), len(res.Groups))
-		}
-	}
-	res.activeCaptures = append(res.activeCaptures, v)
-}
-
-func (res *REsult) unsetCaptureActive(v int) {
-	var ni []int
-	for _, c := range res.activeCaptures {
-		if c != v {
-			ni = append(ni, c)
-		}
-	}
-	res.activeCaptures = ni
+	return
 }
 
 func (nfa *NFA) continueSR(candidate []rune, res *REsult) {
 	searchIndent += 1
-	defer func() {
-		searchIndent -= 1
-		if nfa.Capture {
-			res.unsetCaptureActive(nfa.CaptureGroup)
-		}
-	}()
-	nfatag := GetTag(nfa)
+	defer func() { searchIndent -= 1 }()
 	if len(candidate) < 1 {
 		if searchTrace {
-			fmt.Fprintf(os.Stderr, "[SRCH] %s%s <EOL>\n", si(0), nfatag)
+			fmt.Fprintf(os.Stderr, "[SRCH] %s%s <EOL>\n", si(0), GetTag(nfa))
 		}
 		return
 	}
-	cstr := PrintableizeRunes(candidate, 20, true)
 	for s, nl := range nfa.Transitions {
-		nlftag := GetFTagList(nl)
-		stag := GetFTag(s)
 		if searchTrace {
 			fmt.Fprintf(os.Stderr, "[SRCH] %s%s.Transitions[%s] => {%s} candidate=\"%s\"\n",
-				si(0), nfatag, stag, nlftag, cstr)
-		}
-		if nfa.Capture {
-			res.setCaptureActive(nfa.CaptureGroup)
+				si(0), GetTag(nfa), GetFTag(s), GetFTagList(xlateTrans(nl)), PrintableizeRunes(candidate, 20, true))
 		}
 		if lb, ub, matched := s.Matches(candidate); matched {
 			for b := ub; b >= lb; b-- {
-				for _, c := range res.activeCaptures {
-					fmt.Fprintf(os.Stderr, "[SRCH] %ssend \"%s\" to $%d ???\n",
-						si(0), PrintableizeRunes(candidate[:b], 0, true), c+1)
-				}
 				for _, n := range nl {
 					if searchTrace {
 						fmt.Fprintf(os.Stderr, "[SRCH] %s%s.%s.%s {%d,%d}:%d \n",
-							si(0), nfatag, stag, GetFTag(n), lb, ub, b)
+							si(0), GetTag(nfa), GetFTag(s), GetFTag(n.NFA), lb, ub, b)
 					}
-					if n == nfa && b == 0 {
+					if n.NFA == nfa && b == 0 {
 						if searchTrace {
 							// use si(1) because we don't actually descend
 							fmt.Fprintf(os.Stderr, "[SRCH] %sboring zero-width self transition\n", si(1))
 						}
 						continue
 					}
-					if n == nil {
+					if n.NFA == nil {
 						res.Matched = true
 						if searchTrace {
 							// we don't actually transition to F, so use s(1) to show the pretend descent
@@ -104,10 +69,9 @@ func (nfa *NFA) continueSR(candidate []rune, res *REsult) {
 						}
 						return
 					}
-					if n.continueSR(candidate[b:], res); res.Matched {
+					if n.NFA.continueSR(candidate[b:], res); res.Matched {
 						if searchTrace {
-							fmt.Fprintf(os.Stderr, "[SRCH] %s%s.Transitions[%s]: FIN\n",
-								si(0), GetTag(nfa), stag)
+							fmt.Fprintf(os.Stderr, "[SRCH] %s%s.Transitions[%s]: FIN\n", si(0), GetTag(nfa), GetFTag(s))
 						}
 						return
 					}

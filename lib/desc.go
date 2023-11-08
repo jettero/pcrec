@@ -209,7 +209,7 @@ func (n *NFA) asDotNodes(oo *numberedItems) (ret []string) {
 	nt := GetTag(n)
 	ws := n.Whence.short()
 	ret = append(ret, fmt.Sprintf("%s [label=\"%s :: %s\"]", nt, nt, ws))
-	for _, ni := range n.children {
+	for _, ni := range n.Children {
 		if ni == nil {
 			continue
 		}
@@ -219,10 +219,10 @@ func (n *NFA) asDotNodes(oo *numberedItems) (ret []string) {
 	}
 	for _, nfaSlice := range n.Transitions {
 		for _, ni := range nfaSlice {
-			if ni == nil {
+			if ni.NFA == nil {
 				continue
 			}
-			for _, line := range ni.asDotNodes(oo) {
+			for _, line := range ni.NFA.asDotNodes(oo) {
 				ret = append(ret, line)
 			}
 		}
@@ -237,9 +237,9 @@ func (n *NFA) asDotTransitions(oo *numberedItems) (ret []string) {
 	}
 	for s, nfaSlice := range n.Transitions {
 		if s == nil {
-			for _, nfa := range nfaSlice {
-				ret = append(ret, fmt.Sprintf("%s -> %s [label=\"ε\"]", nt, GetTag(nfa)))
-				for _, line := range nfa.asDotTransitions(oo) {
+			for _, ni := range nfaSlice {
+				ret = append(ret, fmt.Sprintf("%s -> %s [label=\"ε\"]", nt, GetTag(ni.NFA)))
+				for _, line := range ni.NFA.asDotTransitions(oo) {
 					ret = append(ret, line)
 				}
 			}
@@ -249,14 +249,14 @@ func (n *NFA) asDotTransitions(oo *numberedItems) (ret []string) {
 			// XXX: this is slightly spurious since it's going to be wrong
 			// for the case of [\D\W] or similar.
 			if s.Max != 0 {
-				for j, nfa := range nfaSlice {
-					if nfa == nil {
+				for j, ni := range nfaSlice {
+					if ni.NFA == nil {
 						ret = append(ret, fmt.Sprintf("%s -> F [label=\"%d.%s.%d: %s\"]",
 							nt, j, GetTag(s), i, m.Describe()))
 					} else {
 						ret = append(ret, fmt.Sprintf("%s -> %s [label=\"%d.%s.%d: %s\"]",
-							nt, GetTag(nfa), j, GetTag(s), i, m.Describe()))
-						for _, line := range nfa.asDotTransitions(oo) {
+							nt, GetTag(ni.NFA), j, GetTag(s), i, m.Describe()))
+						for _, line := range ni.NFA.asDotTransitions(oo) {
 							ret = append(ret, line)
 						}
 					}
