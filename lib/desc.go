@@ -156,7 +156,7 @@ func (g *Group) short() string {
 		flags += "?:"
 	}
 	return fmt.Sprintf("%s(%s%s)%s", GetTag(g), flags,
-	    strings.Join(uniqueStrings(istr), "|"), Qstr(g.Min, g.Max, g.Greedy))
+		strings.Join(uniqueStrings(istr), "|"), Qstr(g.Min, g.Max, g.Greedy))
 }
 
 func (s *State) short() string {
@@ -231,40 +231,28 @@ func (n *NFA) asDotNodes(oo *numberedItems) (ret []string) {
 	return
 }
 
-var LABEL_SETTINGS string = "labeldistance=2.5, labelfloat=false"
-
 func (n *NFA) asDotTransitions(oo *numberedItems) (ret []string) {
-	nt := GetTag(n)
 	if !oo.onlyOnce(n) {
 		return
 	}
+	var sd, ep string
+	var nt string = GetTag(n)
 	for s, nfaSlice := range n.Transitions {
-		if s == nil {
-			for _, ni := range nfaSlice {
-				ret = append(ret, fmt.Sprintf("%s -> %s [label=\"ε\"]", nt, GetTag(ni.NFA)))
+		for _, ni := range nfaSlice {
+			if s == nil {
+				sd = " ε"
+			} else {
+				sd = s.medium()
+			}
+			if ni.NFA == nil {
+				ep = "F"
+			} else {
+				ep = GetTag(ni.NFA)
 				for _, line := range ni.NFA.asDotTransitions(oo) {
 					ret = append(ret, line)
 				}
 			}
-			continue
-		}
-		for i, m := range s.Match {
-			// XXX: this is slightly spurious since it's going to be wrong
-			// for the case of [\D\W] or similar.
-			if s.Max != 0 {
-				for _, ni := range nfaSlice {
-					if ni.NFA == nil {
-						ret = append(ret, fmt.Sprintf("%s -> F [label=\"%s[%d]: %s\" %s]",
-							nt, GetTag(s), i, m.Describe(), LABEL_SETTINGS))
-					} else {
-						ret = append(ret, fmt.Sprintf("%s -> %s [label=\"%d.%s.%d: %s\"]",
-							nt, GetTag(ni.NFA), j, GetTag(s), i, m.Describe()))
-						for _, line := range ni.NFA.asDotTransitions(oo) {
-							ret = append(ret, line)
-						}
-					}
-				}
-			}
+			ret = append(ret, fmt.Sprintf("%s -> %s [label=\" %s\"]", nt, ep, sd))
 		}
 	}
 	return
