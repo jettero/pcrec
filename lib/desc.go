@@ -231,6 +231,8 @@ func (n *NFA) asDotNodes(oo *numberedItems) (ret []string) {
 	return
 }
 
+var LABEL_SETTINGS string = "labeldistance=2.5, labelfloat=false"
+
 func (n *NFA) asDotTransitions(oo *numberedItems) (ret []string) {
 	nt := GetTag(n)
 	if !oo.onlyOnce(n) {
@@ -250,10 +252,10 @@ func (n *NFA) asDotTransitions(oo *numberedItems) (ret []string) {
 			// XXX: this is slightly spurious since it's going to be wrong
 			// for the case of [\D\W] or similar.
 			if s.Max != 0 {
-				for j, ni := range nfaSlice {
+				for _, ni := range nfaSlice {
 					if ni.NFA == nil {
-						ret = append(ret, fmt.Sprintf("%s -> F [label=\"%d.%s.%d: %s\"]",
-							nt, j, GetTag(s), i, m.Describe()))
+						ret = append(ret, fmt.Sprintf("%s -> F [label=\"%s[%d]: %s\" %s]",
+							nt, GetTag(s), i, m.Describe(), LABEL_SETTINGS))
 					} else {
 						ret = append(ret, fmt.Sprintf("%s -> %s [label=\"%d.%s.%d: %s\"]",
 							nt, GetTag(ni.NFA), j, GetTag(s), i, m.Describe()))
