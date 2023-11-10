@@ -31,6 +31,10 @@ type NFATrans struct {
 
 var nfaTrace bool
 
+func makeTrans(nfa *NFA, caps ...int) (*NFATrans) {
+	return &NFATrans{NFA: nfa, Capture: append([]int{ 0 }, caps...)}
+}
+
 func makeNFA(whence Stateish, gctr *int) (ret *NFA) {
 	ret = &NFA{Whence: whence, Transitions: make(map[*State][]*NFATrans)}
 	if nfaTrace {
@@ -91,7 +95,7 @@ func (this *NFA) addTransitions(next *NFA) (leaf []*State) {
 			fmt.Fprintf(os.Stderr, "[DNTB]   %s -> %s\n", GetTag(typed), GetFTag(next))
 		}
 		if typed.Max > 0 || typed.Max < 0 {
-			this.Transitions[typed] = append(this.Transitions[typed], &NFATrans{NFA: next})
+			this.Transitions[typed] = append(this.Transitions[typed], makeTrans(next))
 			if next == nil {
 				if nfaTrace {
 					fmt.Fprintf(os.Stderr, "[DNTB]   %s is a leaf\n", GetTag(typed))
@@ -99,7 +103,7 @@ func (this *NFA) addTransitions(next *NFA) (leaf []*State) {
 				leaf = append(leaf, typed)
 			}
 			if typed.Max < 0 || typed.Max > 1 {
-				this.Transitions[typed] = append(this.Transitions[typed], &NFATrans{NFA: this})
+				this.Transitions[typed] = append(this.Transitions[typed], makeTrans(this))
 			}
 		}
 	case *Group:
@@ -115,10 +119,10 @@ func (this *NFA) addTransitions(next *NFA) (leaf []*State) {
 						if nfaTrace {
 							fmt.Fprintf(os.Stderr, "[DNTB]   %s -> %s\n", "ε", GetTag(nsti))
 						}
-						this.Transitions[nil] = append(this.Transitions[nil], &NFATrans{NFA: nsti})
+						this.Transitions[nil] = append(this.Transitions[nil], makeTrans(nsti))
 						if typed.Max < 0 || typed.Max > 1 {
 							for _, n := range nsti.nonGroupNodes() {
-								n.Transitions[nil] = append(n.Transitions[nil], &NFATrans{NFA: this})
+								n.Transitions[nil] = append(n.Transitions[nil], makeTrans(this))
 							}
 						}
 					} else {
@@ -142,7 +146,7 @@ func (this *NFA) addTransitions(next *NFA) (leaf []*State) {
 						fmt.Fprintf(os.Stderr, "[DNTB]   %s ~> %s\n", GetTag(item), GetTag(this))
 					}
 					nitem := this.FindNFA(item)
-					nitem.Transitions[item] = append(nitem.Transitions[item], &NFATrans{NFA: this})
+					nitem.Transitions[item] = append(nitem.Transitions[item], makeTrans(this))
 				}
 			}
 		}
