@@ -31,8 +31,8 @@ type NFATrans struct {
 
 var nfaTrace bool
 
-func makeTrans(nfa *NFA, caps ...int) (*NFATrans) {
-	return &NFATrans{NFA: nfa, Capture: append([]int{ 0 }, caps...)}
+func makeTrans(nfa *NFA, caps ...int) *NFATrans {
+	return &NFATrans{NFA: nfa, Capture: append([]int{0}, caps...)}
 }
 
 func makeNFA(whence Stateish, gctr *int) (ret *NFA) {
@@ -43,11 +43,11 @@ func makeNFA(whence Stateish, gctr *int) (ret *NFA) {
 	switch typed := whence.(type) {
 	case *Group:
 		if typed.Capture {
+			*gctr++
 			ret.Capture = true
 			ret.CaptureGroup = *gctr
-			*gctr++
 			if nfaTrace {
-				fmt.Fprintf(os.Stderr, "[DNTB]   new capture group: %d\n", ret.CaptureGroup+1)
+				fmt.Fprintf(os.Stderr, "[DNTB]   new capture group: %d\n", ret.CaptureGroup)
 			}
 		}
 		for _, slist := range typed.States {
@@ -76,12 +76,12 @@ func (n *NFA) FindNFA(s Stateish) *NFA {
 func (this *NFA) nonGroupNodes() (ret []*NFA) {
 	switch this.Whence.(type) {
 	case *Group:
-		for _,c := range this.Children {
+		for _, c := range this.Children {
 			ret = append(ret, c.nonGroupNodes()...)
 		}
 		return
 	}
-	return []*NFA{ this }
+	return []*NFA{this}
 }
 
 func (this *NFA) addTransitions(next *NFA) (leaf []*State) {
