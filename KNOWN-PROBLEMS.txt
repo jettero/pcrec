@@ -16,3 +16,5 @@
       - and another 'ε' back to G1 (so we can consume nothing)
       - ... but the 'ε' transition from G1 (past S1) to F ...
       - missing. We should be able to consume 0 'a's ... fail.
+  - sadly, '.*' also has this (above) problem. it should definitely match an
+    empty string "", but doesn't
