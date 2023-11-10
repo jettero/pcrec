@@ -1,2 +1,18 @@
 - a(b|c{1,2)* gives the wrong error, it belives the ) is part of the string
   c{1,2)* and thinks we're sill in the expressin a(b|......
+
+- here's a list of surprisingly difficult RE to parse. Not necessarily
+  difficult in the traditional sense, but uncommon in thinking enough to point
+  out irritating problems in the parsers.
+  - t((a|b)|c){2}t 
+    - the trick was getting a return from S3(c) back to G1((a|b)|c)
+    - but also an edge back to G1 from S1(a) and S2(b)
+  - ((((a)))) -- segfaults currently ... not sure why ...
+  - (a)*
+    - this shouldn't be hard, but
+    - trying to draw the graphviz/dot representation pointed out several annoying flaws
+      - the 'ε' (null) transition pointed from G1 to S1,
+      - along with the 'a' consuming transition.
+      - and another 'ε' back to G1 (so we can consume nothing)
+      - ... but the 'ε' transition from G1 (past S1) to F ...
+      - missing. We should be able to consume 0 'a's ... fail.
