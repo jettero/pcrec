@@ -32,11 +32,6 @@ type NFATrans struct {
 var nfaTrace bool
 
 func makeTrans(nfa *NFA, caps ...int) *NFATrans {
-	// for _,c := range nfa.Children {
-	//     for s,t := range c.Transitions {
-	//         fmt.Fprintf(os.Stderr, "[DNTB]   new capture group: %d\n", ret.CaptureGroup)
-	//     }
-	// }
 	caps = append([]int{0}, caps...)
 	if nfaTrace {
 		fmt.Fprintf(os.Stderr, "[DNTB]   makeTrans(%s, %v)\n", GetTag(nfa), caps)
@@ -44,8 +39,11 @@ func makeTrans(nfa *NFA, caps ...int) *NFATrans {
 	return &NFATrans{NFA: nfa, Capture: caps}
 }
 
-func makeNFA(whence Stateish, gctr *int) (ret *NFA) {
+func makeNFA(whence Stateish, gctr *int, top *NFA) (ret *NFA) {
 	ret = &NFA{Whence: whence, Transitions: make(map[*State][]*NFATrans)}
+	if top == nil {
+		top = ret
+	}
 	if nfaTrace {
 		fmt.Fprintf(os.Stderr, "[DNTB] makeNFA(%s) => %s\n", GetTag(whence), GetTag(ret))
 	}
@@ -61,8 +59,10 @@ func makeNFA(whence Stateish, gctr *int) (ret *NFA) {
 		}
 		for _, slist := range typed.States {
 			for _, sti := range slist {
-				if !TagDefined(sti) {
-					ret.Children = append(ret.Children, makeNFA(sti, gctr))
+				if stin := top.FindNFA(sti); stin == nil {
+					ret.Children = append(ret.Children, makeNFA(sti, gctr, top))
+				} else {
+					ret.Children = append(ret.Children, stin)
 				}
 			}
 		}
@@ -77,6 +77,11 @@ func (n *NFA) FindNFA(s Stateish) *NFA {
 	for _, item := range n.Children {
 		if item.Whence == s {
 			return item
+		}
+	}
+	for _, item := range n.Children {
+		if d := item.FindNFA(s); d != nil {
+			return d
 		}
 	}
 	return nil
@@ -178,7 +183,7 @@ func BuildNFA(r *RE) (ret *NFA) {
 		fmt.Fprintf(os.Stderr, "[DNTB] BuildNFA :: start\n")
 	}
 	for _, stateish := range r.States {
-		this = makeNFA(stateish, &gctr)
+		this = makeNFA(stateish, &gctr, ret)
 		if ret == nil {
 			ret = this
 		} else {
