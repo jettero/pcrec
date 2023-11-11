@@ -218,12 +218,12 @@ func (n *NFA) asDotNodes(oo *numberedItems) (ret []string) {
 			ret = append(ret, line)
 		}
 	}
-	for _, nfaSlice := range n.Transitions {
-		for _, ni := range nfaSlice {
-			if ni.NFA == nil {
+	for _, transSlice := range n.Transitions {
+		for _, t := range transSlice {
+			if t.NFA == nil {
 				continue
 			}
-			for _, line := range ni.NFA.asDotNodes(oo) {
+			for _, line := range t.NFA.asDotNodes(oo) {
 				ret = append(ret, line)
 			}
 		}
@@ -237,18 +237,18 @@ func (n *NFA) asDotTransitions(oo *numberedItems) (ret []string) {
 	}
 	var sd, ep string
 	var nt string = GetTag(n)
-	for s, nfaSlice := range n.Transitions {
-		for _, ni := range nfaSlice {
+	for s, transSlice := range n.Transitions {
+		for _, t := range transSlice {
 			if s == nil {
 				sd = "ε"
 			} else {
 				sd = s.medium()
 			}
-			if ni.NFA == nil {
+			if t.NFA == nil {
 				ep = "F"
 			} else {
-				ep = GetTag(ni.NFA)
-				for _, line := range ni.NFA.asDotTransitions(oo) {
+				ep = GetTag(t.NFA)
+				for _, line := range t.NFA.asDotTransitions(oo) {
 					ret = append(ret, line)
 				}
 			}
