@@ -164,7 +164,7 @@ func (s *State) short() string {
 }
 
 func (g *Group) medium() string {
-	return fmt.Sprintf("%s: %s", GetTag(g), g.short())
+	return g.short()
 }
 
 func (s *State) medium() string {
@@ -183,7 +183,7 @@ func (s *State) medium() string {
 		sstr = fmt.Sprintf("(?:%s)", sstr)
 	}
 	qstr := Qstr(s.Min, s.Max, s.Greedy)
-	return fmt.Sprintf("%s: %s%s", GetTag(s), sstr, qstr)
+	return fmt.Sprintf("%s/%s/%s", GetTag(s), sstr, qstr)
 }
 
 func (s *State) Describe(indent int) string {
@@ -242,7 +242,11 @@ func (n *NFA) asDotTransitions(oo *numberedItems) (ret []string) {
 			if s == nil {
 				sd = "ε"
 			} else {
-				sd = s.medium()
+				s := []string{ s.medium() }
+				for _,c := range t.Capture {
+					s = append(s, fmt.Sprintf("$%d", c))
+				}
+				sd = strings.Join(s, "")
 			}
 			if t.NFA == nil {
 				ep = "F"
@@ -252,11 +256,6 @@ func (n *NFA) asDotTransitions(oo *numberedItems) (ret []string) {
 					ret = append(ret, line)
 				}
 			}
-			var caps []string
-			for _,c := range t.Capture {
-				caps = append(caps, fmt.Sprintf("$%d", c))
-			}
-			sd = strings.Join(append([]string{sd}, caps...), " ")
 			ret = append(ret, fmt.Sprintf("%s -> %s [label=\"%s\"]", nt, ep, sd))
 		}
 	}
