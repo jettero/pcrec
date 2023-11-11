@@ -252,6 +252,11 @@ func (n *NFA) asDotTransitions(oo *numberedItems) (ret []string) {
 					ret = append(ret, line)
 				}
 			}
+			var caps []string
+			for _,c := range t.Capture {
+				caps = append(caps, fmt.Sprintf("$%d", c))
+			}
+			sd = strings.Join(append([]string{sd}, caps...), " ")
 			ret = append(ret, fmt.Sprintf("%s -> %s [label=\"%s\"]", nt, ep, sd))
 		}
 	}

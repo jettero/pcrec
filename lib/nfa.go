@@ -32,7 +32,16 @@ type NFATrans struct {
 var nfaTrace bool
 
 func makeTrans(nfa *NFA, caps ...int) *NFATrans {
-	return &NFATrans{NFA: nfa, Capture: append([]int{0}, caps...)}
+	// for _,c := range nfa.Children {
+	//     for s,t := range c.Transitions {
+	//         fmt.Fprintf(os.Stderr, "[DNTB]   new capture group: %d\n", ret.CaptureGroup)
+	//     }
+	// }
+	caps = append([]int{0}, caps...)
+	if nfaTrace {
+		fmt.Fprintf(os.Stderr, "[DNTB]   makeTrans(%s, %v)\n", GetTag(nfa), caps)
+	}
+	return &NFATrans{NFA: nfa, Capture: caps}
 }
 
 func makeNFA(whence Stateish, gctr *int) (ret *NFA) {
@@ -122,6 +131,9 @@ func (this *NFA) addTransitions(next *NFA) (leaf []*State) {
 						this.Transitions[nil] = append(this.Transitions[nil], makeTrans(nsti))
 						if typed.Max < 0 || typed.Max > 1 {
 							for _, n := range nsti.nonGroupNodes() {
+								if nfaTrace {
+									fmt.Fprintf(os.Stderr, "[DNTB]   %s -> %s\n", "ε", GetTag(nsti))
+								}
 								n.Transitions[nil] = append(n.Transitions[nil], makeTrans(this))
 							}
 						}
