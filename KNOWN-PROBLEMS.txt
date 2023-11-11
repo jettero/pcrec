@@ -18,3 +18,6 @@
       - missing. We should be able to consume 0 'a's ... fail.
   - sadly, '.*' also has this (above) problem. it should definitely match an
     empty string "", but doesn't
+  - a|(b|c) seems to be fairly problematic as well, but may be fixed with fixes
+    for the above. It seems to want to allow multiple matches, but we should
+    accept after finding a single character.
