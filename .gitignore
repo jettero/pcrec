@@ -1,5 +1,7 @@
 
 
+# spam files
+/file*
 
 # the pattern dumper might do this
 /*.dot
