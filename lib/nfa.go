@@ -87,15 +87,14 @@ func (n *NFA) FindNFA(s Stateish) *NFA {
 	return nil
 }
 
-func (this *NFA) nonGroupNodes() (ret []*NFA) {
-	switch this.Whence.(type) {
-	case *Group:
-		for _, c := range this.Children {
-			ret = append(ret, c.nonGroupNodes()...)
-		}
-		return
+func (this *NFA) leaves() (ret []*NFA) {
+	if len(this.Children) == 0 {
+		return []*NFA{this}
 	}
-	return []*NFA{this}
+	for _,c := range this.Children {
+		ret = append(ret, c.leaves()...)
+	}
+	return
 }
 
 func (this *NFA) addTransitions(next *NFA) (leaf []*State) {
@@ -135,12 +134,12 @@ func (this *NFA) addTransitions(next *NFA) (leaf []*State) {
 						}
 						this.Transitions[nil] = append(this.Transitions[nil], makeTrans(nsti))
 						if typed.Max < 0 || typed.Max > 1 {
-							for _, n := range nsti.nonGroupNodes() {
-								if nfaTrace {
-									fmt.Fprintf(os.Stderr, "[DNTB]   %s -> %s\n", "ε", GetTag(nsti))
-								}
-								n.Transitions[nil] = append(n.Transitions[nil], makeTrans(this))
-							}
+						    for _, n := range nsti.leaves() {
+						        if nfaTrace {
+						            fmt.Fprintf(os.Stderr, "[DNTB]   %s -> %s\n", "ε", GetTag(nsti))
+						        }
+						        n.Transitions[nil] = append(n.Transitions[nil], makeTrans(this))
+						    }
 						}
 					} else {
 						if nfaTrace {
