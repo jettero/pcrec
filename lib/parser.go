@@ -429,7 +429,9 @@ func (p *Parser) Parse(pat []rune) (*RE, error) {
 						return p.formatError(fmt.Sprintf("unable to parse \"%s\" as a number", string(p.m_rreg1)))
 					}
 					if len(p.m_rreg2) == 0 {
-						b = -1
+						if p.n == SUB_RHS {
+							b = -1
+						}
 					} else if num, err := strconv.ParseInt(string(p.m_rreg2), 10, 0); err == nil {
 						b = int(num)
 					} else {
