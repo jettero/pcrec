@@ -34,7 +34,7 @@ type Parser struct {
 
 	m_rreg1 []rune // tmp storage
 	m_rreg2 []rune
-	m_sreg  *State
+	m_sreg  *OldState
 }
 
 type Context struct {

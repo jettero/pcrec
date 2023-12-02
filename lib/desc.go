@@ -159,7 +159,7 @@ func (g *Group) short() string {
 		strings.Join(uniqueStrings(istr), "|"), Qstr(g.Min, g.Max, g.Greedy))
 }
 
-func (s *State) short() string {
+func (s *OldState) short() string {
 	return GetTag(s) + Qstr(s.Min, s.Max, s.Greedy)
 }
 
@@ -167,7 +167,7 @@ func (g *Group) medium() string {
 	return g.short()
 }
 
-func (s *State) medium() string {
+func (s *OldState) medium() string {
 	ret := []string{}
 	for _, m := range s.Match {
 		ret = append(ret, m.Describe())
@@ -186,7 +186,7 @@ func (s *State) medium() string {
 	return fmt.Sprintf("%s/%s/%s", GetTag(s), sstr, qstr)
 }
 
-func (s *State) Describe(indent int) string {
+func (s *OldState) Describe(indent int) string {
 	istr := strings.Repeat(INDENT, indent)
 	ret := []string{}
 	for _, m := range s.Match {
@@ -242,8 +242,8 @@ func (n *NFA) asDotTransitions(oo *numberedItems) (ret []string) {
 			if s == nil {
 				sd = "ε"
 			} else {
-				s := []string{ s.medium() }
-				for _,c := range t.Capture {
+				s := []string{s.medium()}
+				for _, c := range t.Capture {
 					s = append(s, fmt.Sprintf("$%d", c))
 				}
 				sd = strings.Join(s, "")

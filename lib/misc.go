@@ -40,7 +40,7 @@ type numberedItems struct {
 func TypeSymbolForThing(thing interface{}) (ts string) {
 	ts = "?"
 	switch typed := thing.(type) {
-	case *State:
+	case *OldState:
 		ts = "S"
 		if typed == nil {
 			ts += "?"

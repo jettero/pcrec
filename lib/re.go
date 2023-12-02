@@ -19,7 +19,7 @@ type Stateish interface {
 	medium() string
 }
 
-type State struct {
+type OldState struct {
 	Match  []*Matcher // items in an 'or' group (e.g. a|b|c)
 	Min    int        // min matches
 	Max    int        // max matches or -1 for many
@@ -61,12 +61,12 @@ func (r *RE) SetCapture(f bool) {
 	}
 }
 
-func (s *State) SetQty(min, max int) {
+func (s *OldState) SetQty(min, max int) {
 	s.Min = min
 	s.Max = max
 }
 
-func (s *State) SetGreedy(f bool) {
+func (s *OldState) SetGreedy(f bool) {
 	s.Greedy = f
 }
 
@@ -113,7 +113,7 @@ func (r *RE) AppendOrToGroupOrCreateGroup() bool {
 	return true
 }
 
-func (s *State) LastStateish() Stateish {
+func (s *OldState) LastStateish() Stateish {
 	return s
 }
 
@@ -132,7 +132,7 @@ func (g *Group) LastStateish() Stateish {
 	return g.States[lgs][lgss]
 }
 
-func (s *State) LastOpenGroup() *Group {
+func (s *OldState) LastOpenGroup() *Group {
 	return nil
 }
 
@@ -181,16 +181,16 @@ func (r *RE) CloseImplicitTopGroups() {
 	}
 }
 
-func (r *RE) AppendState(min int, max int, greedy bool) *State {
+func (r *RE) AppendState(min int, max int, greedy bool) *OldState {
 	if lg := r.LastOpenGroup(); lg != nil {
 		return lg.AppendState(min, max, greedy)
 	}
-	ret := &State{Min: min, Max: max, Greedy: greedy}
+	ret := &OldState{Min: min, Max: max, Greedy: greedy}
 	r.States = append(r.States, ret)
 	return ret
 }
 
-func (r *RE) AppendRuneState(runes ...rune) *State {
+func (r *RE) AppendRuneState(runes ...rune) *OldState {
 	s := r.AppendState(1, 1, true)
 	for _, r := range runes {
 		s.AppendMatch(r, false)
@@ -198,7 +198,7 @@ func (r *RE) AppendRuneState(runes ...rune) *State {
 	return s
 }
 
-func (r *RE) AppendInvertedRuneState(runes ...rune) *State {
+func (r *RE) AppendInvertedRuneState(runes ...rune) *OldState {
 	s := r.AppendState(1, 1, true)
 	s.And = true
 	for _, r := range runes {
@@ -207,7 +207,7 @@ func (r *RE) AppendInvertedRuneState(runes ...rune) *State {
 	return s
 }
 
-func (r *RE) AppendDotState() *State {
+func (r *RE) AppendDotState() *OldState {
 	s := r.AppendState(1, 1, true)
 	s.AppendDotMatch()
 	return s
@@ -225,8 +225,8 @@ func (g *Group) AppendOrClause() {
 	g.States = append(g.States, []Stateish{})
 }
 
-func (g *Group) AppendState(min int, max int, greedy bool) *State {
-	ret := &State{Min: min, Max: max, Greedy: greedy}
+func (g *Group) AppendState(min int, max int, greedy bool) *OldState {
+	ret := &OldState{Min: min, Max: max, Greedy: greedy}
 	if i := len(g.States) - 1; i >= 0 {
 		g.States[i] = append(g.States[i], ret)
 	} else {
@@ -235,11 +235,11 @@ func (g *Group) AppendState(min int, max int, greedy bool) *State {
 	return ret
 }
 
-func (s *State) AppendDotMatch() {
+func (s *OldState) AppendDotMatch() {
 	s.Match = append(s.Match, &Matcher{Any: true})
 }
 
-func (s *State) AppendToLastMatch(r rune, inverse bool) error {
+func (s *OldState) AppendToLastMatch(r rune, inverse bool) error {
 	i := len(s.Match) - 1
 	if i < 0 {
 		return fmt.Errorf("unable to append %d to last match as there are no matches in %+v", r, s)
@@ -251,7 +251,7 @@ func (s *State) AppendToLastMatch(r rune, inverse bool) error {
 	return nil
 }
 
-func (s *State) AppendMatch(r rune, inverse bool) {
+func (s *OldState) AppendMatch(r rune, inverse bool) {
 	for _, m := range s.Match {
 		if m.Inverse == inverse && m.First <= r && r <= m.Last {
 			return

@@ -107,7 +107,7 @@ func (m *Matcher) Matches(r rune) bool {
 	return m.Inverse != (m.First <= r && r <= m.Last) // inverse ^ between
 }
 
-func (s *State) Matches(candidate []rune) (lb int, ub int, match bool) {
+func (s *OldState) Matches(candidate []rune) (lb int, ub int, match bool) {
 	var q int
 	if s == nil {
 		lb = 0

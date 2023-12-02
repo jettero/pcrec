@@ -18,7 +18,7 @@ type NFA struct {
 	********************************************************/
 
 	Children     []*NFA
-	Transitions  map[*State][]*NFATrans
+	Transitions  map[*OldState][]*NFATrans
 	Whence       Stateish
 	Capture      bool
 	CaptureGroup int
@@ -40,7 +40,7 @@ func makeTrans(nfa *NFA, caps ...int) *NFATrans {
 }
 
 func makeNFA(whence Stateish, gctr *int, top *NFA) (ret *NFA) {
-	ret = &NFA{Whence: whence, Transitions: make(map[*State][]*NFATrans)}
+	ret = &NFA{Whence: whence, Transitions: make(map[*OldState][]*NFATrans)}
 	if top == nil {
 		top = ret
 	}
@@ -91,19 +91,19 @@ func (this *NFA) leaves() (ret []*NFA) {
 	if len(this.Children) == 0 {
 		return []*NFA{this}
 	}
-	for _,c := range this.Children {
+	for _, c := range this.Children {
 		ret = append(ret, c.leaves()...)
 	}
 	return
 }
 
-func (this *NFA) addTransitions(next *NFA) (leaf []*State) {
+func (this *NFA) addTransitions(next *NFA) (leaf []*OldState) {
 	if nfaTrace {
 		fmt.Fprintf(os.Stderr, "[DNTB] %s.addTransitions(%s)\n",
 			GetTag(this), GetFTag(next))
 	}
 	switch typed := this.Whence.(type) {
-	case *State:
+	case *OldState:
 		if nfaTrace {
 			fmt.Fprintf(os.Stderr, "[DNTB]   %s -> %s\n", GetTag(typed), GetFTag(next))
 		}
@@ -134,12 +134,12 @@ func (this *NFA) addTransitions(next *NFA) (leaf []*State) {
 						}
 						this.Transitions[nil] = append(this.Transitions[nil], makeTrans(nsti))
 						if typed.Max < 0 || typed.Max > 1 {
-						    for _, n := range nsti.leaves() {
-						        if nfaTrace {
-						            fmt.Fprintf(os.Stderr, "[DNTB]   %s -> %s\n", "ε", GetTag(nsti))
-						        }
-						        n.Transitions[nil] = append(n.Transitions[nil], makeTrans(this))
-						    }
+							for _, n := range nsti.leaves() {
+								if nfaTrace {
+									fmt.Fprintf(os.Stderr, "[DNTB]   %s -> %s\n", "ε", GetTag(nsti))
+								}
+								n.Transitions[nil] = append(n.Transitions[nil], makeTrans(this))
+							}
 						}
 					} else {
 						if nfaTrace {
