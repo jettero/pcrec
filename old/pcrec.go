@@ -7,10 +7,9 @@ func Parse(pat string) (*lib.RE, error) {
 }
 
 func Search(pat string, candidate string) (*lib.REsult, error) {
-	if _, err := Parse(pat); err != nil {
+	if n, err := Parse(pat); err != nil {
 		return nil, err
 	} else {
-		return &lib.REsult{}, nil
-		//return n.SearchRunes([]rune(candidate)), nil
+		return n.SearchRunes([]rune(candidate)), nil
 	}
 }
