@@ -30,3 +30,16 @@ type Transition struct {
 	// XXX should this even be here? should it be in State?
 	// XXX prolly, if *Qty is nil, we mean exactly 1? or do we always populate this?
 }
+
+// XXX maybe to figure out if the above would work, we just try to manually
+// populate a couple and see what's missing
+
+type Graph struct {
+	States []*State
+	Start  *State
+	Accept *State
+}
+
+func MakeGraph() *Graph {
+	return &Graph{Accept: &State{Accept: true}}
+}
