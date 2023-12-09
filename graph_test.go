@@ -6,8 +6,9 @@ import (
 	"github.com/jettero/pcrec/lib"
 )
 
-func TestDotCompileBuild(t *testing.T) {
-	if g := lib.MakeGraph(); g == nil {
-		t.Error("wut?")
+func TestGraph01(t *testing.T) {
+	g := lib.MakeGraph()
+	if g == nil {
+		t.Error("making an empty graph should totally work every time... but didn't")
 	}
 }

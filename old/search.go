@@ -1,4 +1,4 @@
-package lib
+package main
 
 import (
 	"fmt"
@@ -6,20 +6,8 @@ import (
 	"strings"
 )
 
-var searchTrace bool
-var searchIndent int
-
-type REsult struct { // <--- I think this is hilarious, sorry
-	Groups  [][]rune
-	Matched bool
-}
-
-func (r *RE) Search(candidate string) (ret *REsult) {
-	return r.SearchRunes([]rune(candidate))
-}
-
-func (r *RE) SearchRunes(candidate []rune) (res *REsult) {
-	return r.NFA().SearchRunes(candidate, false)
+func main() {
+	fmt.Println("vim-go")
 }
 
 func si(i int) string {

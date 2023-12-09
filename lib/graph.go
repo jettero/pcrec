@@ -1,9 +1,9 @@
 package lib
 
 type State struct {
-	Xfer   map[*Transition]*State // *State is nil for Accept?
-	Accept bool                   // or sould we have an explicit accepting state?
-	Qty    *Qty                   // XXX do states have quantities? are they shared with Transitions?
+	Xfer  []*Transition // *State is nil for Accept?
+	Qty   *Qty          // XXX do states have quantities? are they shared with Transitions?
+	Graph *Graph        // what graph am I in?
 }
 
 type Qty struct {
@@ -11,7 +11,7 @@ type Qty struct {
 	Max int // -1 indicates ∞
 
 	// Is this quantity capturing?
-	Capture int // 0, or the number of the capture group
+	Capture []int // the numbers of any capture groups
 }
 
 type Transition struct {
@@ -22,13 +22,11 @@ type Transition struct {
 	// although, perhaps we say
 	Inverse bool // anything except the above
 
-	// and we can only use this transition if the
+	// should Transitions have a Qty? is it he same as the parent state?
 	Qty *Qty // XXX does nil mean anything?
-	// XXX This is a ptr so we can share the Qty between things
-	// XXX Maybe multiple Transitions?
-	// XXX Or what do States store?
-	// XXX should this even be here? should it be in State?
-	// XXX prolly, if *Qty is nil, we mean exactly 1? or do we always populate this?
+
+	From *State // keep pointers for the source state
+	To   *State // and the target state
 }
 
 // XXX maybe to figure out if the above would work, we just try to manually
@@ -36,10 +34,27 @@ type Transition struct {
 
 type Graph struct {
 	States []*State
-	Start  *State
+	Start  *State // this is really just for reference. we can start a search anywhere we'd like
 	Accept *State
+
+	CaptureGroups int // counter to keep track of what capture group we're on
 }
 
-func MakeGraph() *Graph {
-	return &Graph{Accept: &State{Accept: true}}
+func MakeGraph() (g *Graph) {
+	g = &Graph{}
+	g.Start = g.MakeState()
+	g.Accept = g.MakeState()
+	return
+}
+
+func (g *Graph) MakeState() (s *State) {
+	s = &State{Qty: &Qty{Min: 1, Max: 1}}
+	g.States = append(g.States, s)
+	return
+}
+
+func (s *State) AddTransition(first rune, last rune, inverse bool, target *State) (t *Transition) {
+	t = &Transition{Qty: s.Qty, From: s, To: target}
+	s.Xfer = append(s.Xfer, t)
+	return
 }
