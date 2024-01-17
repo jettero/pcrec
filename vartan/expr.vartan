@@ -1,0 +1,48 @@
+// vi:ft=text:
+
+#name expr;
+
+#prec (
+    #left mul div
+    #left add sub
+);
+
+expr
+    : expr add expr
+    | expr sub expr
+    | expr mul expr
+    | expr div expr
+    | func_call
+    | int
+    | id
+    | l_paren expr r_paren #ast expr
+    ;
+func_call
+    : id l_paren args r_paren #ast id args
+    | id l_paren r_paren      #ast id
+    ;
+args
+    : args comma expr #ast args... expr
+    | expr
+    ;
+
+ws #skip
+    : "[\u{0009}\u{0020}]+";
+int
+    : "0|[1-9][0-9]*";
+id
+    : "[A-Za-z_][0-9A-Za-z_]*";
+add
+    : '+';
+sub
+    : '-';
+mul
+    : '*';
+div
+    : '/';
+l_paren
+    : '(';
+r_paren
+    : ')';
+comma
+    : ',';
