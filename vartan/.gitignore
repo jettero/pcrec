@@ -1,2 +1,6 @@
 *.json
 *.txt
+
+*_lexer.go
+*_parser.go
+*_semantic_action.go
