@@ -20,11 +20,16 @@ show: $(T)
 	@clear
 	$(PAGER) $(T)
 
+test: $(patsubst %,test-%,$(E))
+
 parse-%: %-parsed.txt
 	$(PAGER) $<
 
 show-%: %-report.txt
 	$(PAGER) $<
+
+test-%: %.vartan %-test.txt
+	vartan test $< $*-test.txt
 
 setup:
 	go install github.com/nihei9/vartan/cmd/vartan@latest
