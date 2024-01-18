@@ -1,0 +1,21 @@
+// vi:ft=text:
+
+#name regexp;
+
+regexp: matcher qty
+      | matcher
+;
+
+matcher: "[^{*+?]"
+
+int: "0|[1-9][0-9]*";
+
+qty_op: "[*+?]";
+qty_start: '{';
+qty_sep:   ',';
+qty_end:   '}';
+
+qty: qty_op
+   | qty_start int qty_end
+   | qty_start int qty_sep int qty_end
+;
