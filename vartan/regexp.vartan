@@ -2,29 +2,27 @@
 
 #name re;
 
-re: re expr | expr;
+re: re expr #ast re... expr | expr #ast expr;
 
-expr: match qty | match;
+expr: match qty #ast match... qty... | match #ast match...;
 
-match: m_any | m_char;
-m_char: "[^.{}*+?[\]]";
+match: m_any | char;
 m_any: '.';
 
-// m_range: c_start m_chars c_end;
-// c_start: '[';
-// c_not: '^';
-// c_end: ']';
+qty_op: "[*+?]";
+qty_start #push qty: '{';
+qty_cnd #mode qty #pop: ',}';
+qty_sep #mode qty #push qtr: ',';
+qty_end #mode qty #pop: '}';
 
-int: "0|[1-9][0-9]*";
+q_max #mode qtr #pop: "0|[1-9][0-9]*";
+q_min #mode qty: "0|[1-9][0-9]*";
 
-qty_op:    "[*+?]";
-qty_start: '{';
-qty_sep:   ',';
-qty_end:   '}';
+char: "[^.{}*+?[\]]";
 
 qty: qty_op
-   | qty_start int qty_end
-   | qty_start int qty_sep     qty_end
-   | qty_start     qty_sep int qty_end
-   | qty_start int qty_sep int qty_end
+   | qty_start q_min qty_end #ast q_min
+   | qty_start q_min qty_cnd #ast q_min
+   | qty_start       qty_sep q_max qty_end #ast q_max
+   | qty_start q_min qty_sep q_max qty_end #ast q_min q_max
    ;
