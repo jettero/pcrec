@@ -6,14 +6,30 @@ re: re expr #ast re... expr | expr;
 
 expr: atom qty #ast atom... qty... | atom #ast atom...;
 
-atom: m_any | char | grp;
-m_any: '.';
+atom: a_any | a_char | grp | ar_range;
+a_any: '.';
 
-grp: grp_start re grp_end #ast re...;
-grp_start: '(';
+ar_beg #push arl: '[';
+ar_sep #mode arl #push arr: '-';
+ar_neg #mode arl: '^';
+ar_min #mode arl: "[^\]]";
+ar_cnd #mode arl #pop: '-]';
+ar_end #mode arl #pop: ']';
+ar_max #mode arr #pop: "[^\]]";
+
+ar_rng: ar_min ar_sep ar_max #ast ar_min ar_max | ar_min;
+ar_rngs: ar_rngs ar_rng #ast ar_rngs... ar_rng... | ar_rng #ast ar_rng...;
+ar_range: ar_beg        ar_rngs ar_end #ast ar_rngs...
+        | ar_beg        ar_rngs ar_cnd #ast ar_rngs... ar_cnd
+        | ar_beg ar_neg ar_rngs ar_end #ast ar_neg ar_rngs...
+        | ar_beg ar_neg ar_rngs ar_cnd #ast ar_neg ar_rngs... ar_cnd
+        ;
+
+grp: grp_beg re grp_end #ast re...;
+grp_beg: '(';
 grp_end: ')';
 
-qty_start #push qty: '{';
+qty_beg #push qty: '{';
 qty_cnd #mode qty #pop: ',}';
 qty_sep #mode qty #push qtr: ',';
 qty_end #mode qty #pop: '}';
@@ -25,10 +41,10 @@ qty_0m: '*';
 qty_1m: '+';
 
 qty: qty_01 | qty_0m | qty_1m
-   | qty_start q_min qty_end #ast q_min
-   | qty_start q_min qty_cnd #ast q_min
-   | qty_start       qty_sep q_max qty_end #ast q_max
-   | qty_start q_min qty_sep q_max qty_end #ast q_min q_max
+   | qty_beg q_min qty_end #ast q_min
+   | qty_beg q_min qty_cnd #ast q_min
+   | qty_beg       qty_sep q_max qty_end #ast q_max
+   | qty_beg q_min qty_sep q_max qty_end #ast q_min q_max
    ;
 
-char: "[^.{}*+?[\]]";
+a_char: "[^.{}*+?[\]]";
