@@ -2,14 +2,17 @@
 
 #name re;
 
-re: re expr #ast re... expr | expr #ast expr;
+re: re expr #ast re... expr | expr;
 
-expr: match qty #ast match... qty... | match #ast match...;
+expr: atom qty #ast atom... qty... | atom #ast atom...;
 
-match: m_any | char;
+atom: m_any | char | grp;
 m_any: '.';
 
-qty_op: "[*+?]";
+grp: grp_start re grp_end #ast re...;
+grp_start: '(';
+grp_end: ')';
+
 qty_start #push qty: '{';
 qty_cnd #mode qty #pop: ',}';
 qty_sep #mode qty #push qtr: ',';
@@ -17,12 +20,15 @@ qty_end #mode qty #pop: '}';
 
 q_max #mode qtr #pop: "0|[1-9][0-9]*";
 q_min #mode qty: "0|[1-9][0-9]*";
+qty_01: '?';
+qty_0m: '*';
+qty_1m: '+';
 
-char: "[^.{}*+?[\]]";
-
-qty: qty_op
+qty: qty_01 | qty_0m | qty_1m
    | qty_start q_min qty_end #ast q_min
    | qty_start q_min qty_cnd #ast q_min
    | qty_start       qty_sep q_max qty_end #ast q_max
    | qty_start q_min qty_sep q_max qty_end #ast q_min q_max
    ;
+
+char: "[^.{}*+?[\]]";
