@@ -1,10 +1,17 @@
 // vi:ft=vartan:
 
-#name re;
+#name regexp;
 
-re: re expr #ast re... expr | expr;
-atom: a_any | a_char | a_grp | a_set; // an atom matches a single glyph
-expr: atom qty #ast atom... qty... | atom #ast atom...; // an expr is some number of atoms
+re: re expr #ast re... expr... | expr #ast expr...;
+
+// an atom matches a single glyph
+atom: a_any | a_char | a_grp | a_set
+    | atom qty #ast atom... qty...
+    ;
+
+// an expr is either an atom or an OR
+expr: atom #ast atom | or #ast or;
+or: or or_op expr #ast or... expr... | expr #ast expr...;
 
 // atomic sets (sets of things that could together match a glyph); or the neg of that
 a_set: s_beg       s_rngs s_end #ast       s_rngs...
@@ -40,6 +47,7 @@ s_cnd #mode arl #pop: '-]'; // in order to get [ab-c-] to work, you have to kind
 s_end #mode arl #pop: ']';
 s_max #mode arr #pop: "[^\]]"; // rhs of the dash op
 
+or_op: '|';
 g_beg: '(';
 g_end: ')';
 
