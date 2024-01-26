@@ -3,48 +3,57 @@
 #name re;
 
 re: re expr #ast re... expr | expr;
+atom: a_any | a_char | a_grp | a_set; // an atom matches a single glyph
+expr: atom qty #ast atom... qty... | atom #ast atom...; // an expr is some number of atoms
 
-expr: atom qty #ast atom... qty... | atom #ast atom...;
+// atomic sets (sets of things that could together match a glyph); or the neg of that
+a_set: s_beg       s_rngs s_end #ast       s_rngs...
+     | s_beg       s_rngs s_cnd #ast       s_rngs... s_cnd
+     | s_beg s_neg s_rngs s_end #ast s_neg s_rngs...
+     | s_beg s_neg s_rngs s_cnd #ast s_neg s_rngs... s_cnd
+     ;
 
-atom: a_any | a_char | grp | ar_range;
-a_any: '.';
+// char ranges and lists of them
+s_rng: s_min s_sep s_max #ast s_min s_max | s_min;
+s_rngs: s_rngs s_rng #ast s_rngs... s_rng... | s_rng #ast s_rng...;
 
-ar_beg #push arl: '[';
-ar_sep #mode arl #push arr: '-';
-ar_neg #mode arl: '^';
-ar_min #mode arl: "[^\]]";
-ar_cnd #mode arl #pop: '-]';
-ar_end #mode arl #pop: ']';
-ar_max #mode arr #pop: "[^\]]";
+// (groups)
+a_grp: g_beg re g_end #ast re...;
 
-ar_rng: ar_min ar_sep ar_max #ast ar_min ar_max | ar_min;
-ar_rngs: ar_rngs ar_rng #ast ar_rngs... ar_rng... | ar_rng #ast ar_rng...;
-ar_range: ar_beg        ar_rngs ar_end #ast ar_rngs...
-        | ar_beg        ar_rngs ar_cnd #ast ar_rngs... ar_cnd
-        | ar_beg ar_neg ar_rngs ar_end #ast ar_neg ar_rngs...
-        | ar_beg ar_neg ar_rngs ar_cnd #ast ar_neg ar_rngs... ar_cnd
-        ;
-
-grp: grp_beg re grp_end #ast re...;
-grp_beg: '(';
-grp_end: ')';
-
-qty_beg #push qty: '{';
-qty_cnd #mode qty #pop: ',}';
-qty_sep #mode qty #push qtr: ',';
-qty_end #mode qty #pop: '}';
-
-q_max #mode qtr #pop: "0|[1-9][0-9]*";
-q_min #mode qty: "0|[1-9][0-9]*";
-qty_01: '?';
-qty_0m: '*';
-qty_1m: '+';
-
-qty: qty_01 | qty_0m | qty_1m
-   | qty_beg q_min qty_end #ast q_min
-   | qty_beg q_min qty_cnd #ast q_min
-   | qty_beg       qty_sep q_max qty_end #ast q_max
-   | qty_beg q_min qty_sep q_max qty_end #ast q_min q_max
+qty: q_01 | q_0m | q_1m
+   | q_beg q_min q_end #ast q_min
+   | q_beg q_min q_cnd #ast q_min
+   | q_beg       q_sep q_max q_end #ast q_max
+   | q_beg q_min q_sep q_max q_end #ast q_min q_max
    ;
 
+//************** terminals **************//
+// note: whatever matches first kinda sticks
+// which is why a_char has to be last
+
+// a_set terminals
+s_beg #push arl: '['; // arl is the s_ lhs (left hand side of the dash "operator")
+s_sep #mode arl #push arr: '-';
+s_neg #mode arl: '^';
+s_min #mode arl: "[^\]]";
+s_cnd #mode arl #pop: '-]'; // in order to get [ab-c-] to work, you have to kinda fool vartan
+s_end #mode arl #pop: ']';
+s_max #mode arr #pop: "[^\]]"; // rhs of the dash op
+
+g_beg: '(';
+g_end: ')';
+
+// qty terminals
+q_beg #push qty: '{';
+q_cnd #mode qty #pop: ',}';
+q_sep #mode qty #push qtr: ',';
+q_end #mode qty #pop: '}';
+q_max #mode qtr #pop: "0|[1-9][0-9]*";
+q_min #mode qty: "0|[1-9][0-9]*";
+q_01: '?';
+q_0m: '*';
+q_1m: '+';
+
+// atom terminals
+a_any: '.';
 a_char: "[^.{}*+?[\]]";
