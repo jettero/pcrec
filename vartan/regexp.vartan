@@ -25,7 +25,15 @@ s_rng: s_min s_sep s_max #ast s_min s_max | s_min;
 s_rngs: s_rngs s_rng #ast s_rngs... s_rng... | s_rng #ast s_rng...;
 
 // (groups)
-a_grp: g_beg re g_end #ast re...;
+a_grp: g_beg       re g_end #ast re...
+     | g_beg g_mod re g_end #ast re...
+     ;
+
+g_mod: g_opt_beg         g_opt_end
+     | g_opt_beg g_flags g_op_end
+     ;
+
+g_flags: g_flags g_flag #ast g_flag;
 
 qty: q_01 | q_0m | q_1m
    | q_beg q_min q_end #ast q_min
