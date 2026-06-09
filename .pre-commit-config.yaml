@@ -1,5 +1,11 @@
 fail_fast: true
 
+# contrib/ holds vendored third-party files (PCRE2 testdata at a pinned SHA).
+# Pre-commit must NOT touch them — trailing-whitespace and end-of-file-fixer
+# silently corrupt the upstream content and break conformance comparison.
+# Refresh via contrib/pcre2/FETCH.sh.
+exclude: '^contrib/'
+
 repos:
 - repo: https://github.com/pre-commit/pre-commit-hooks
   rev: v4.5.0
