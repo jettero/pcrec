@@ -31,4 +31,3 @@ update:
 	pre-commit clean
 	pre-commit gc
 	pre-commit autoupdate
-

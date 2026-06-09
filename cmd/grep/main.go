@@ -9,7 +9,6 @@ import (
 	"strings"
 
 	"github.com/jettero/pcrec"
-	"github.com/jettero/pcrec/lib"
 	"github.com/spf13/pflag"
 )
 
@@ -43,6 +42,11 @@ func main() {
 	os.Exit(search())
 }
 
+func truthyEnv(e string) bool {
+	v := os.Getenv(e)
+	return v == "1" || v == "true" || v == "yes"
+}
+
 func search() int {
 	args := ProcessArgs()
 	pat := args[0]
@@ -58,7 +62,7 @@ func search() int {
 		return 2
 	}
 
-	if lib.TruthyEnv("PCREC_TRACE") {
+	if truthyEnv("PCREC_TRACE") {
 		fmt.Println("[MAIN]", strings.ReplaceAll(re.Describe(0), "\n", "\n[MAIN] "))
 	}
 
@@ -84,11 +88,11 @@ func search() int {
 				fmt.Fprintf(os.Stderr, "Error reading: %v\n", err)
 				return 2
 			}
-			if lib.TruthyEnv("PCREC_PP_RES") {
+			if truthyEnv("PCREC_PP_RES") {
 				fmt.Print("[MAIN] line: ", line)
 				res := re.Search(line)
 				fmt.Print(res.Describe(1))
-				fmt.Println("\n")
+				fmt.Print("\n\n")
 			} else {
 				if res := re.Search(line); res.Matched {
 					fmt.Print(line)
